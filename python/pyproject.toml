@@ -1,0 +1,30 @@
+[project]
+name = "okmain"
+version = "0.1.0"
+requires-python = "==3.12.*"
+dependencies = [
+    "Pillow",
+]
+
+[build-system]
+requires = ["maturin>=1.11,<2.0"]
+build-backend = "maturin"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "mypy",
+    "ruff",
+]
+
+[tool.maturin]
+manifest-path = "../crates/okmain_py/Cargo.toml"
+module-name = "okmain._core"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 99
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
