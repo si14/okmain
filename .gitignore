@@ -1,0 +1,12 @@
+/target/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+.venv/
+*.so
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.claude/

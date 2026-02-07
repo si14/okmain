@@ -1,0 +1,18 @@
+[workspace]
+resolver = "3"
+members = ["crates/okmain", "crates/okmain_py"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.93"
+
+[workspace.dependencies]
+snafu = { version = "0.8", features = ["rust_1_81"] }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+
+[profile.bench]
+debug = true

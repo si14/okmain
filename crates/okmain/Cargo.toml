@@ -1,0 +1,50 @@
+[package]
+name = "okmain"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+snafu = { workspace = true }
+oklab = { version = "1" }
+fast-srgb8 = { version = "1" }
+rand = { version = "0.10.0-rc.9", default-features = false }
+rand_xoshiro = { version = "0.8" }
+pulp = { version = "0.22" }
+
+image = { version = "0.25", optional = true, default-features = false }
+
+
+[dev-dependencies]
+pretty_assertions = { version = "1", features = ["unstable"] }
+criterion = { version = "0.8", features = ["html_reports"] }
+
+[features]
+default = []
+image = ["dep:image"]
+snafu = []
+_debug = ["image", "image/png", "image/jpeg"]
+_bench = []
+
+[[bin]]
+name = "debug_sample"
+required-features = ["_debug"]
+
+[[bin]]
+name = "debug_centroids"
+required-features = ["_debug"]
+
+[[bin]]
+name = "debug_colors"
+required-features = ["_debug"]
+
+[[bench]]
+name = "kmeans"
+harness = false
+required-features = ["_bench"]
+
+[[bench]]
+name = "sample"
+harness = false
+required-features = ["_bench"]

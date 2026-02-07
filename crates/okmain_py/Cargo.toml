@@ -1,0 +1,15 @@
+[package]
+name = "okmain_py"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+name = "_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+okmain = { path = "../okmain" }
+pyo3 = { version = "0.28", features = ["abi3-py312"] }
