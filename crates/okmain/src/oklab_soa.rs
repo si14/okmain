@@ -2,19 +2,18 @@ const MAX_SAMPLE_SIZE: usize = 250_000; // 500x500
 
 #[derive(Debug)]
 pub struct SampledOklabSoA {
-    // todo: x, y -> width, height
-    pub x: Vec<u16>,
-    pub y: Vec<u16>,
+    pub width: u16,
+    pub height: u16,
     pub l: Vec<f32>,
     pub a: Vec<f32>,
     pub b: Vec<f32>,
 }
 
 impl SampledOklabSoA {
-    pub fn new(sample_size: usize) -> Self {
+    pub fn new(width: u16, height: u16, sample_size: usize) -> Self {
         Self {
-            x: Vec::with_capacity(sample_size),
-            y: Vec::with_capacity(sample_size),
+            width,
+            height,
             l: Vec::with_capacity(sample_size),
             a: Vec::with_capacity(sample_size),
             b: Vec::with_capacity(sample_size),
@@ -22,9 +21,7 @@ impl SampledOklabSoA {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, x: u16, y: u16, l: f32, a: f32, b: f32) {
-        self.x.push(x);
-        self.y.push(y);
+    pub fn push(&mut self, l: f32, a: f32, b: f32) {
         self.l.push(l);
         self.a.push(a);
         self.b.push(b);
@@ -60,7 +57,7 @@ pub fn sample(width: u16, height: u16, buf: &[u8]) -> SampledOklabSoA {
     let blocks_y = h.div_ceil(n);
     let num_blocks = blocks_x * blocks_y;
 
-    let mut result = SampledOklabSoA::new(num_blocks);
+    let mut result = SampledOklabSoA::new(blocks_x as u16, blocks_y as u16, num_blocks);
 
     // Per-block-column accumulators for the current block row
     let mut acc_r = vec![0.0f32; blocks_x];
@@ -104,10 +101,7 @@ pub fn sample(width: u16, height: u16, buf: &[u8]) -> SampledOklabSoA {
                 b: avg_b,
             });
 
-            let cx = ((bx * n + n / 2).min(w - 1)) as u16;
-            let cy = ((by * n + n / 2).min(h - 1)) as u16;
-
-            result.push(cx, cy, oklab.l, oklab.a, oklab.b);
+            result.push(oklab.l, oklab.a, oklab.b);
 
             acc_r[bx] = 0.0;
             acc_g[bx] = 0.0;
@@ -116,11 +110,9 @@ pub fn sample(width: u16, height: u16, buf: &[u8]) -> SampledOklabSoA {
         }
     }
 
-    assert_eq!(result.x.len(), result.y.len());
-    assert_eq!(result.x.len(), result.l.len());
-    assert_eq!(result.x.len(), result.a.len());
-    assert_eq!(result.x.len(), result.b.len());
-    assert_eq!(result.x.len(), num_blocks);
+    assert_eq!(result.l.len(), num_blocks);
+    assert_eq!(result.a.len(), num_blocks);
+    assert_eq!(result.b.len(), num_blocks);
 
     result
 }
@@ -131,8 +123,6 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     fn assert_all_len(soa: &SampledOklabSoA, len: usize) {
-        assert_eq!(soa.x.len(), len);
-        assert_eq!(soa.y.len(), len);
         assert_eq!(soa.l.len(), len);
         assert_eq!(soa.a.len(), len);
         assert_eq!(soa.b.len(), len);
@@ -140,17 +130,16 @@ mod tests {
 
     #[test]
     fn new_allocates_capacity() {
-        let soa = SampledOklabSoA::new(100);
-        assert_eq!(soa.x.capacity(), 100);
+        let soa = SampledOklabSoA::new(0, 0, 100);
+        assert_eq!(soa.l.capacity(), 100);
         assert_all_len(&soa, 0);
     }
 
     #[test]
     fn push_adds_values() {
-        let mut soa = SampledOklabSoA::new(2);
-        soa.push(10, 20, 0.5, 0.1, 0.2);
-        soa.push(30, 40, 0.7, 0.3, 0.4);
-        assert_eq!(soa.x, vec![10, 30]);
+        let mut soa = SampledOklabSoA::new(0, 0, 2);
+        soa.push(0.5, 0.1, 0.2);
+        soa.push(0.7, 0.3, 0.4);
         assert_eq!(soa.l, vec![0.5, 0.7]);
     }
 
@@ -176,7 +165,8 @@ mod tests {
     fn sample_1x1() {
         let result = sample(1, 1, &[255, 0, 0]);
         assert_all_len(&result, 1);
-        assert_eq!((result.x[0], result.y[0]), (0, 0));
+        assert_eq!(result.width, 1);
+        assert_eq!(result.height, 1);
     }
 
     #[test]
@@ -185,8 +175,8 @@ mod tests {
         let result = sample(2, 2, &buf);
         // block_size=1 for 4 pixels, so 4 blocks
         assert_all_len(&result, 4);
-        assert_eq!(result.x, vec![0, 1, 0, 1]);
-        assert_eq!(result.y, vec![0, 0, 1, 1]);
+        assert_eq!(result.width, 2);
+        assert_eq!(result.height, 2);
     }
 
     #[test]
@@ -207,8 +197,8 @@ mod tests {
         // block_size = 4, blocks_x = 250, blocks_y = 250
         let expected = 250 * 250;
         assert_all_len(&result, expected);
-        assert!(result.x.iter().all(|&x| x < 1000));
-        assert!(result.y.iter().all(|&y| y < 1000));
+        assert_eq!(result.width, 250);
+        assert_eq!(result.height, 250);
     }
 
     #[test]

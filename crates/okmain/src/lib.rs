@@ -130,7 +130,9 @@ pub fn colors_from_rgb_buffer(width: u16, height: u16, buf: &[u8]) -> Result<Vec
     // Weighted counts per cluster
     let mut weighted_counts = vec![0.0f32; num_centroids];
     for (i, &assignment) in result.assignments.iter().enumerate() {
-        let w = distance_weight(oklab_soa.x[i], oklab_soa.y[i], width, height);
+        let bx = (i % oklab_soa.width as usize) as u16;
+        let by = (i / oklab_soa.width as usize) as u16;
+        let w = distance_weight(bx, by, oklab_soa.width, oklab_soa.height);
         weighted_counts[assignment] += w;
     }
     let total: f32 = weighted_counts.iter().sum();

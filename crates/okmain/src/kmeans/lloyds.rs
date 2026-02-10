@@ -434,10 +434,10 @@ mod tests {
             points.swap(i, j);
         }
 
-        let mut soa = SampledOklabSoA::new(n);
+        let mut soa = SampledOklabSoA::new(0, 0, n);
         let mut truth = Vec::with_capacity(n);
         for &(cluster_id, l, a, b) in &points {
-            soa.push(0, 0, l, a, b);
+            soa.push(l, a, b);
             truth.push(cluster_id);
         }
 
@@ -554,8 +554,8 @@ mod tests {
             l: vec![0.0, 10.0, 20.0],
             a: vec![0.0, 10.0, 20.0],
             b: vec![0.0, 10.0, 20.0],
-            x: vec![0, 0, 0],
-            y: vec![0, 0, 0],
+            width: 0,
+            height: 0,
         };
 
         // k=5 > n=3, gets clamped to n=3
@@ -586,10 +586,10 @@ mod tests {
             points.swap(i, j);
         }
 
-        let mut soa = SampledOklabSoA::new(n_per * 4);
+        let mut soa = SampledOklabSoA::new(0, 0, n_per * 4);
         let mut truth = Vec::with_capacity(n_per * 4);
         for &(cluster_id, l, a, b) in &points {
-            soa.push(0, 0, l, a, b);
+            soa.push(l, a, b);
             truth.push(cluster_id);
         }
 

@@ -31,13 +31,7 @@ fn sample_by_distance(rng: &mut impl RngExt, min_distances: &[f32]) -> usize {
 
 pub fn find_initial(
     rng: &mut impl RngExt,
-    SampledOklabSoA {
-        l,
-        a,
-        b,
-        x: _,
-        y: _,
-    }: &SampledOklabSoA,
+    SampledOklabSoA { l, a, b, .. }: &SampledOklabSoA,
     k: usize,
 ) -> Vec<usize> {
     let n = l.len();
@@ -106,8 +100,8 @@ mod tests {
             l: vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
             a: vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
             b: vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0],
-            x: vec![],
-            y: vec![],
+            width: 0,
+            height: 0,
         };
 
         for k in 1..=4 {
@@ -133,8 +127,8 @@ mod tests {
             l: vec![0.0, 1.0, 2.0],
             a: vec![0.0, 1.0, 2.0],
             b: vec![0.0, 1.0, 2.0],
-            x: vec![],
-            y: vec![],
+            width: 0,
+            height: 0,
         };
 
         let result = find_initial(&mut rng, &data, 1);
@@ -150,8 +144,8 @@ mod tests {
             l: vec![0.0, 10.0, 20.0, 30.0],
             a: vec![0.0, 10.0, 20.0, 30.0],
             b: vec![0.0, 10.0, 20.0, 30.0],
-            x: vec![],
-            y: vec![],
+            width: 0,
+            height: 0,
         };
 
         let result = find_initial(&mut rng, &data, 4);
@@ -170,8 +164,8 @@ mod tests {
             l: vec![0.0, 10.0, 20.0],
             a: vec![0.0, 10.0, 20.0],
             b: vec![0.0, 10.0, 20.0],
-            x: vec![],
-            y: vec![],
+            width: 0,
+            height: 0,
         };
 
         // k=4 > n=3, should behave like k=3 and return all indices
@@ -210,8 +204,8 @@ mod tests {
             l,
             a,
             b,
-            x: vec![],
-            y: vec![],
+            width: 0,
+            height: 0,
         };
 
         let result = find_initial(&mut rng, &data, 3);
@@ -234,8 +228,8 @@ mod tests {
             l: vec![0.0, 0.0, 10.0],
             a: vec![0.0, 0.0, 10.0],
             b: vec![0.0, 0.0, 10.0],
-            x: vec![],
-            y: vec![],
+            width: 0,
+            height: 0,
         };
 
         let result = find_initial(&mut rng, &data, 2);
@@ -262,8 +256,8 @@ mod tests {
             l: vec![0.0, 1.0, -1.0, 0.1, 1.1, -1.1],
             a: vec![0.0, 1.0, -1.0, 0.1, 1.1, -1.1],
             b: vec![0.0, 1.0, -1.0, 0.1, 1.1, -1.1],
-            x: vec![],
-            y: vec![],
+            width: 0,
+            height: 0,
         };
 
         let result = find_initial(&mut rng, &data, 3);

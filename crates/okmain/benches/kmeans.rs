@@ -6,9 +6,7 @@ use rand::RngExt;
 
 fn generate_random_points(n: usize) -> SampledOklabSoA {
     let mut rng = rng::new();
-    let mut sampled = SampledOklabSoA::new(n);
-    sampled.x.resize(n, 0);
-    sampled.y.resize(n, 0);
+    let mut sampled = SampledOklabSoA::new(0, 0, n);
     for _ in 0..n {
         sampled.l.push(rng.random::<f32>());
         sampled.a.push(rng.random::<f32>());

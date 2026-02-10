@@ -34,27 +34,16 @@ fn main() {
         let sample = oklab_soa::sample(w, h, img.as_raw());
         let elapsed = t.elapsed();
 
-        let n = oklab_soa::block_size(w, h) as u32;
-        let blocks_x = (w as u32 + n - 1) / n;
-        let mut out = RgbImage::new(w as u32, h as u32);
+        let mut out = RgbImage::new(sample.width as u32, sample.height as u32);
         for i in 0..sample.l.len() {
             let rgb = oklab::oklab_to_srgb(oklab::Oklab {
                 l: sample.l[i],
                 a: sample.a[i],
                 b: sample.b[i],
             });
-            let pixel = image::Rgb([rgb.r, rgb.g, rgb.b]);
-            let bx = (i as u32) % blocks_x;
-            let by = (i as u32) / blocks_x;
-            let x0 = bx * n;
-            let y0 = by * n;
-            let x1 = (x0 + n).min(w as u32);
-            let y1 = (y0 + n).min(h as u32);
-            for py in y0..y1 {
-                for px in x0..x1 {
-                    out.put_pixel(px, py, pixel);
-                }
-            }
+            let px = (i as u32) % sample.width as u32;
+            let py = (i as u32) / sample.width as u32;
+            out.put_pixel(px, py, image::Rgb([rgb.r, rgb.g, rgb.b]));
         }
 
         out.save(out_dir.join(filename)).unwrap();
