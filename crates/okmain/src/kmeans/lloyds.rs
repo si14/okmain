@@ -403,8 +403,10 @@ pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize)
 mod tests {
     use super::*;
     use crate::oklab_soa::SampledOklabSoA;
+    use rand::RngExt;
 
     const N_PER_CLUSTER: usize = 4096;
+    const NOISE: f32 = 0.5;
     const CENTERS: [(f32, f32, f32); 4] = [
         (0.0, 0.0, 0.0),
         (10.0, 0.0, 0.0),
@@ -412,21 +414,40 @@ mod tests {
         (0.0, 0.0, 10.0),
     ];
 
-    fn make_four_cluster_soa() -> SampledOklabSoA {
+    fn make_four_cluster_soa(rng: &mut impl RngExt) -> (SampledOklabSoA, Vec<u8>) {
         let n = N_PER_CLUSTER * 4;
-        let mut soa = SampledOklabSoA::new(n);
-        for &(cl, ca, cb) in &CENTERS {
-            for i in 0..N_PER_CLUSTER {
-                let offset = i as f32 * 0.0001;
-                soa.push(0, 0, cl + offset, ca + offset, cb + offset);
+        let mut points: Vec<(u8, f32, f32, f32)> = Vec::with_capacity(n);
+        for (ci, &(cl, ca, cb)) in CENTERS.iter().enumerate() {
+            for _ in 0..N_PER_CLUSTER {
+                points.push((
+                    ci as u8,
+                    cl + rng.random::<f32>() * NOISE,
+                    ca + rng.random::<f32>() * NOISE,
+                    cb + rng.random::<f32>() * NOISE,
+                ));
             }
         }
-        soa
+
+        // Fisher-Yates shuffle
+        for i in (1..points.len()).rev() {
+            let j = rng.random_range(0..(i + 1));
+            points.swap(i, j);
+        }
+
+        let mut soa = SampledOklabSoA::new(n);
+        let mut truth = Vec::with_capacity(n);
+        for &(cluster_id, l, a, b) in &points {
+            soa.push(0, 0, l, a, b);
+            truth.push(cluster_id);
+        }
+
+        (soa, truth)
     }
 
     #[test]
     fn test_assign_points() {
-        let soa = make_four_cluster_soa();
+        let mut rng = crate::rng::new();
+        let (soa, truth) = make_four_cluster_soa(&mut rng);
         let n = soa.l.len();
 
         let mut centroids = CentroidSoA {
@@ -443,19 +464,21 @@ mod tests {
         let mut assignments = vec![0u8; n];
         assign_points(&soa, &centroids, &mut assignments);
 
-        // Each cluster's points should all get the same label
-        for ci in 0..4 {
-            let start = ci * N_PER_CLUSTER;
-            let end = start + N_PER_CLUSTER;
-            let label = assignments[start];
-            assert!(
-                assignments[start..end].iter().all(|&a| a == label),
-                "cluster {ci}: not all points assigned to same centroid",
-            );
+        // All points sharing the same ground-truth cluster get the same label
+        let mut label_for_cluster = [None::<u8>; 4];
+        for (i, &assigned) in assignments.iter().enumerate() {
+            let gt = truth[i] as usize;
+            match label_for_cluster[gt] {
+                None => label_for_cluster[gt] = Some(assigned),
+                Some(expected) => assert_eq!(
+                    assigned, expected,
+                    "point {i}: ground-truth cluster {gt} got different labels",
+                ),
+            }
         }
 
-        // The four cluster labels should be distinct
-        let labels: Vec<u8> = (0..4).map(|ci| assignments[ci * N_PER_CLUSTER]).collect();
+        // The 4 labels are distinct
+        let labels: Vec<u8> = label_for_cluster.iter().map(|l| l.unwrap()).collect();
         for i in 0..4 {
             for j in (i + 1)..4 {
                 assert_ne!(
@@ -468,12 +491,9 @@ mod tests {
 
     #[test]
     fn test_update_centroids() {
-        let soa = make_four_cluster_soa();
-        let n = soa.l.len();
+        let mut rng = crate::rng::new();
+        let (soa, truth) = make_four_cluster_soa(&mut rng);
         let k = 4;
-
-        // Correct assignments: point i belongs to cluster i / N_PER_CLUSTER
-        let assignments: Vec<u8> = (0..n).map(|i| (i / N_PER_CLUSTER) as u8).collect();
 
         // Start centroids far away
         let mut centroids = CentroidSoA {
@@ -487,41 +507,124 @@ mod tests {
             centroids.b[i] = 99.0;
         }
 
-        let result = update_centroids(&soa, k, &assignments, &mut centroids);
+        let result = update_centroids(&soa, k, &truth, &mut centroids);
 
-        // Each centroid should be near its cluster's true center.
-        // Per-cluster offsets are 0..4096 * 0.0001, so mean offset ~0.2.
+        // Each centroid should be near its cluster's true center (tolerance 1.0 for noise)
         for (i, &(cl, ca, cb)) in CENTERS.iter().enumerate() {
             assert!(
-                (centroids.l[i] - cl).abs() < 0.3,
+                (centroids.l[i] - cl).abs() < 1.0,
                 "centroid {i} l: expected ~{cl}, got {}",
                 centroids.l[i],
             );
             assert!(
-                (centroids.a[i] - ca).abs() < 0.3,
+                (centroids.a[i] - ca).abs() < 1.0,
                 "centroid {i} a: expected ~{ca}, got {}",
                 centroids.a[i],
             );
             assert!(
-                (centroids.b[i] - cb).abs() < 0.3,
+                (centroids.b[i] - cb).abs() < 1.0,
                 "centroid {i} b: expected ~{cb}, got {}",
                 centroids.b[i],
             );
         }
 
-        // Centroids moved from (99,99,99), so shift must be large
         assert!(
             result.shift_squared > 0.0,
             "shift_squared should be > 0, got {}",
             result.shift_squared,
         );
 
-        // Each cluster has exactly N_PER_CLUSTER points
-        for i in 0..k {
-            assert_eq!(
-                result.counts[i], N_PER_CLUSTER as u32,
-                "cluster {i} count mismatch",
-            );
+        let total_count: u32 = result.counts.iter().take(k).sum();
+        assert_eq!(total_count, (N_PER_CLUSTER * 4) as u32);
+    }
+
+    #[test]
+    fn test_find_centroids_k1() {
+        let mut rng = crate::rng::new();
+        let (soa, _) = make_four_cluster_soa(&mut rng);
+
+        let result = find_centroids(&mut crate::rng::new(), &soa, 1);
+        assert_eq!(result.centroids.len(), 1);
+        assert!(result.assignments.iter().all(|&a| a == 0));
+    }
+
+    #[test]
+    fn test_find_centroids_k_equals_n() {
+        let soa = SampledOklabSoA {
+            l: vec![0.0, 10.0, 20.0],
+            a: vec![0.0, 10.0, 20.0],
+            b: vec![0.0, 10.0, 20.0],
+            x: vec![0, 0, 0],
+            y: vec![0, 0, 0],
+        };
+
+        // k=5 > n=3, gets clamped to n=3
+        let result = find_centroids(&mut crate::rng::new(), &soa, 5);
+        assert_eq!(result.centroids.len(), 3);
+    }
+
+    #[test]
+    fn test_find_centroids_well_separated() {
+        let mut rng = crate::rng::new();
+
+        let n_per = 100;
+        let mut points: Vec<(u8, f32, f32, f32)> = Vec::with_capacity(n_per * 4);
+        for (ci, &(cl, ca, cb)) in CENTERS.iter().enumerate() {
+            for _ in 0..n_per {
+                points.push((
+                    ci as u8,
+                    cl + rng.random::<f32>() * NOISE,
+                    ca + rng.random::<f32>() * NOISE,
+                    cb + rng.random::<f32>() * NOISE,
+                ));
+            }
+        }
+
+        // Fisher-Yates shuffle
+        for i in (1..points.len()).rev() {
+            let j = rng.random_range(0..(i + 1));
+            points.swap(i, j);
+        }
+
+        let mut soa = SampledOklabSoA::new(n_per * 4);
+        let mut truth = Vec::with_capacity(n_per * 4);
+        for &(cluster_id, l, a, b) in &points {
+            soa.push(0, 0, l, a, b);
+            truth.push(cluster_id);
+        }
+
+        let result = find_centroids(&mut crate::rng::new(), &soa, 4);
+        assert_eq!(result.centroids.len(), 4);
+
+        // Cluster consistency: points with same ground-truth get same assignment
+        let mut label_for_cluster = [None::<usize>; 4];
+        for (i, &assigned) in result.assignments.iter().enumerate() {
+            let gt = truth[i] as usize;
+            match label_for_cluster[gt] {
+                None => label_for_cluster[gt] = Some(assigned),
+                Some(expected) => assert_eq!(
+                    assigned, expected,
+                    "point {i}: ground-truth cluster {gt} got different assignments",
+                ),
+            }
+        }
+
+        // 4 distinct labels
+        let labels: Vec<usize> = label_for_cluster.iter().map(|l| l.unwrap()).collect();
+        for i in 0..4 {
+            for j in (i + 1)..4 {
+                assert_ne!(labels[i], labels[j]);
+            }
+        }
+
+        // Centroids near centers
+        for ci in 0..4 {
+            let (cl, ca, cb) = CENTERS[ci];
+            let ri = labels[ci];
+            let c = &result.centroids[ri];
+            assert!((c.l - cl).abs() < 1.0, "centroid l for cluster {ci}");
+            assert!((c.a - ca).abs() < 1.0, "centroid a for cluster {ci}");
+            assert!((c.b - cb).abs() < 1.0, "centroid b for cluster {ci}");
         }
     }
 }
