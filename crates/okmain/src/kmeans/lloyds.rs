@@ -278,7 +278,7 @@ pub fn update_centroids(
     let mut sums_b = [0f32; MAX_CENTROIDS];
 
     for (i, assigned_c) in assignments.iter().copied().enumerate() {
-        assert!(assigned_c < k as u8);
+        debug_assert!(assigned_c < k as u8);
 
         let assigned_c = assigned_c as usize;
         counts[assigned_c] += 1;

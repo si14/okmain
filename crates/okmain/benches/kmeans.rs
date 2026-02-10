@@ -36,23 +36,23 @@ fn bench(c: &mut Criterion) {
     let mut assignments = vec![0u8; sample.l.len()];
     lloyds::assign_points(&sample, &centroids, &mut assignments);
 
-    c.bench_function("plus_plus_init", |b| {
+    c.bench_function("kmeans/plus_plus_init", |b| {
         b.iter(|| plus_plus_init::find_initial(&mut rng::new(), &sample, k))
     });
 
-    c.bench_function("assign_points", |b| {
+    c.bench_function("kmeans/assign_points", |b| {
         let mut assign_buf = vec![0u8; sample.l.len()];
         b.iter(|| lloyds::assign_points(&sample, &centroids, &mut assign_buf))
     });
 
-    c.bench_function("update_centroids", |b| {
+    c.bench_function("kmeans/update_centroids", |b| {
         b.iter(|| {
             let mut centroids_copy = centroids;
             lloyds::update_centroids(&sample, k, &assignments, &mut centroids_copy)
         })
     });
 
-    c.bench_function("find_centroids", |b| {
+    c.bench_function("kmeans/find_centroids", |b| {
         b.iter(|| lloyds::find_centroids(&mut rng::new(), &sample, k))
     });
 }
