@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn sample_small_image() {
-        let result = sample(3, 3, &vec![0u8; 27]);
+        let result = sample(3, 3, &[0u8; 27]);
         assert_all_len(&result, 9);
     }
 

@@ -219,7 +219,7 @@ mod tests {
     #[test]
     fn uniform_image() {
         // 10x10 image of a single color
-        let buf = vec![200, 100, 50].repeat(100);
+        let buf = [200, 100, 50].repeat(100);
         let colors = colors_from_rgb_buffer(10, 10, &buf).unwrap();
         assert_eq!(colors.len(), 1);
         assert!((colors[0].r as i16 - 200).abs() <= 1);
@@ -236,7 +236,7 @@ mod tests {
         for y in 0..h as usize {
             for x in 0..w as usize {
                 let idx = (y * w as usize + x) * 3;
-                if x >= 2 && x < 18 && y >= 2 && y < 18 {
+                if (2..18).contains(&x) && (2..18).contains(&y) {
                     buf[idx] = 255;
                     buf[idx + 1] = 0;
                     buf[idx + 2] = 0;
