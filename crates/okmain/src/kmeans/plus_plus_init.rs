@@ -1,5 +1,5 @@
 use crate::kmeans::lloyds::squared_distance;
-use crate::oklab_soa::SampledOklabSoA;
+use crate::sample::SampledOklabSoA;
 use rand::RngExt;
 
 // Scikit uses (2+log(k)), which is 3 or 4 for k=1..4, we can settle on 3
@@ -45,6 +45,7 @@ pub fn find_initial(
         min_distances_sum += d;
     }
 
+    assert_eq!(N_CANDIDATES, 3, "three unrolled vectors");
     let mut candidate_min_distances0 = vec![0.0f32; n];
     let mut candidate_min_distances1 = vec![0.0f32; n];
     let mut candidate_min_distances2 = vec![0.0f32; n];

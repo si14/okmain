@@ -1,5 +1,5 @@
 use image::RgbImage;
-use okmain::{kmeans, oklab_soa, rng};
+use okmain::{kmeans, rng, sample};
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -34,7 +34,7 @@ fn main() {
         let t = Instant::now();
         let img = image::open(path).unwrap().to_rgb8();
         let (w, h) = (img.width() as u16, img.height() as u16);
-        let sample = oklab_soa::sample(w, h, img.as_raw());
+        let sample = sample::sample(w, h, img.as_raw());
 
         let mut rng = rng::new();
         let result = kmeans::adaptive::find_centroids(&mut rng, &sample);

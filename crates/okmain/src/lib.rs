@@ -3,13 +3,13 @@ pub mod kmeans;
 #[cfg(not(any(feature = "_bench", feature = "_debug")))]
 mod kmeans;
 #[cfg(any(feature = "_bench", feature = "_debug"))]
-pub mod oklab_soa;
-#[cfg(not(any(feature = "_bench", feature = "_debug")))]
-mod oklab_soa;
-#[cfg(any(feature = "_bench", feature = "_debug"))]
 pub mod rng;
 #[cfg(not(any(feature = "_bench", feature = "_debug")))]
 mod rng;
+#[cfg(any(feature = "_bench", feature = "_debug"))]
+pub mod sample;
+#[cfg(not(any(feature = "_bench", feature = "_debug")))]
+mod sample;
 
 use snafu::prelude::*;
 
@@ -122,7 +122,7 @@ pub fn colors_from_rgb_buffer(width: u16, height: u16, buf: &[u8]) -> Result<Vec
         }
     );
 
-    let oklab_soa = oklab_soa::sample(width, height, buf);
+    let oklab_soa = sample::sample(width, height, buf);
 
     let mut rng = rng::new();
     let result = kmeans::adaptive::find_centroids(&mut rng, &oklab_soa);

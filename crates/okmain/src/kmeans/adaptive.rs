@@ -1,5 +1,5 @@
 use super::{lloyds, ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS};
-use crate::oklab_soa::SampledOklabSoA;
+use crate::sample::SampledOklabSoA;
 use crate::Oklab;
 use rand::RngExt;
 

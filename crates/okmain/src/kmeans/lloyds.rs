@@ -1,6 +1,6 @@
 use super::MAX_CENTROIDS;
 use crate::kmeans::plus_plus_init::find_initial;
-use crate::oklab_soa::SampledOklabSoA;
+use crate::sample::SampledOklabSoA;
 use crate::Oklab;
 use rand::RngExt;
 
@@ -441,7 +441,7 @@ pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize)
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::oklab_soa::SampledOklabSoA;
+    use crate::sample::SampledOklabSoA;
     use rand::RngExt;
 
     const N_PER_CLUSTER: usize = 4096;

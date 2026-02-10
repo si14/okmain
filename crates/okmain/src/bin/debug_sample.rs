@@ -1,5 +1,5 @@
 use image::RgbImage;
-use okmain::oklab_soa;
+use okmain::sample;
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -31,7 +31,7 @@ fn main() {
         let (w, h) = (img.width() as u16, img.height() as u16);
 
         let t = Instant::now();
-        let sample = oklab_soa::sample(w, h, img.as_raw());
+        let sample = sample::sample(w, h, img.as_raw());
         let elapsed = t.elapsed();
 
         let mut out = RgbImage::new(sample.width as u32, sample.height as u32);

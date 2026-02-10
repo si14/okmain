@@ -1,7 +1,7 @@
 use criterion::{
     criterion_group, criterion_main, AxisScale, BenchmarkId, Criterion, PlotConfiguration,
 };
-use okmain::{oklab_soa, rng};
+use okmain::{rng, sample};
 use rand::Rng;
 
 struct Size {
@@ -11,9 +11,21 @@ struct Size {
 }
 
 const SIZES: &[Size] = &[
-    Size { label: "small", width: 100, height: 100 },
-    Size { label: "medium", width: 1000, height: 1500 },
-    Size { label: "large", width: 2796, height: 1290 },
+    Size {
+        label: "small",
+        width: 100,
+        height: 100,
+    },
+    Size {
+        label: "medium",
+        width: 1000,
+        height: 1500,
+    },
+    Size {
+        label: "large",
+        width: 2796,
+        height: 1290,
+    },
 ];
 
 fn bench(c: &mut Criterion) {
@@ -34,9 +46,7 @@ fn bench(c: &mut Criterion) {
 
     for (size, buf) in SIZES.iter().zip(buffers.iter()) {
         group.bench_with_input(BenchmarkId::from_parameter(size.label), buf, |b, buf| {
-            b.iter_with_large_drop(|| {
-                oklab_soa::sample(size.width, size.height, buf)
-            })
+            b.iter_with_large_drop(|| sample::sample(size.width, size.height, buf))
         });
     }
     group.finish();

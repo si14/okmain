@@ -28,10 +28,11 @@ impl SampledOklabSoA {
     }
 }
 
-/// Compute the block size N for block averaging.
-///
-/// - If total pixels <= MAX_SAMPLE_SIZE, returns 1 (no averaging).
-/// - Otherwise, ceil(sqrt(total / MAX_SAMPLE_SIZE)), rounded up to the next multiple of 4.
+// TODO: review/simplify/analyse
+// Compute the block size N for block averaging.
+//
+// - If total pixels <= MAX_SAMPLE_SIZE, returns 1 (no averaging).
+// - Otherwise, ceil(sqrt(total / MAX_SAMPLE_SIZE)), rounded up to the next multiple of 4.
 pub fn block_size(width: u16, height: u16) -> usize {
     let total = width as usize * height as usize;
     if total <= MAX_SAMPLE_SIZE {

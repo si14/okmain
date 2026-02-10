@@ -1,7 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use okmain::kmeans::{lloyds, plus_plus_init, MAX_CENTROIDS};
-use okmain::oklab_soa::SampledOklabSoA;
 use okmain::rng;
+use okmain::sample::SampledOklabSoA;
 use rand::RngExt;
 
 fn generate_random_points(n: usize) -> SampledOklabSoA {
