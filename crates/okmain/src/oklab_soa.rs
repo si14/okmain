@@ -56,8 +56,8 @@ pub fn sample(width: u16, height: u16, buf: &[u8]) -> SampledOklabSoA {
     let h = height as usize;
     let n = block_size(width, height);
 
-    let blocks_x = (w + n - 1) / n;
-    let blocks_y = (h + n - 1) / n;
+    let blocks_x = w.div_ceil(n);
+    let blocks_y = h.div_ceil(n);
     let num_blocks = blocks_x * blocks_y;
 
     let mut result = SampledOklabSoA::new(num_blocks);

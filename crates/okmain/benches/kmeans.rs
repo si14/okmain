@@ -1,7 +1,7 @@
 use criterion::{
     criterion_group, criterion_main, AxisScale, BenchmarkId, Criterion, PlotConfiguration,
 };
-use okmain::kmeans::{minibatch, plus_plus_init};
+use okmain::kmeans::{lloyds, plus_plus_init};
 use okmain::oklab_soa::SampledOklabSoA;
 use okmain::rng;
 use rand::RngExt;
@@ -109,7 +109,7 @@ fn bench(c: &mut Criterion) {
         }
         group.finish();
 
-        let mut group = c.benchmark_group(format!("minibatch/{}", group_input.label));
+        let mut group = c.benchmark_group(format!("lloyds/{}", group_input.label));
         group.plot_config(plot_config.clone());
 
         for &(size_name, size) in sizes.iter() {
@@ -117,7 +117,7 @@ fn bench(c: &mut Criterion) {
                 let sample = group_input.samples.get(size).unwrap();
                 b.iter_with_large_drop(|| {
                     let rng = &mut rng::new();
-                    minibatch::find_centroids(rng, sample, group_input.k)
+                    lloyds::find_centroids(rng, sample, group_input.k)
                 })
             });
         }

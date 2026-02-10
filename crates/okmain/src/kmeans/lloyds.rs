@@ -1,5 +1,7 @@
-use super::MAX_CENTROIDS;
+use super::{Centroids, MAX_CENTROIDS};
+use crate::kmeans::plus_plus_init::find_initial;
 use crate::oklab_soa::SampledOklabSoA;
+use crate::Oklab;
 use rand::RngExt;
 
 // sklearn KMeans defaults
@@ -314,6 +316,7 @@ pub fn update_centroids(
     }
 }
 
+#[allow(dead_code)] // used for debug output
 pub struct LloydsLoopResult {
     pub iterations: usize,
 }
@@ -359,6 +362,40 @@ pub fn lloyds_loop(
 
     LloydsLoopResult {
         iterations: MAX_ITER,
+    }
+}
+
+pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize) -> Centroids {
+    let n = sample.l.len();
+    let k = k.min(n);
+
+    let init_points = find_initial(rng, sample, k);
+
+    let mut centroids = CentroidSoA {
+        l: [f32::MAX; MAX_CENTROIDS],
+        a: [f32::MAX; MAX_CENTROIDS],
+        b: [f32::MAX; MAX_CENTROIDS],
+    };
+    for (j, &idx) in init_points.iter().enumerate() {
+        centroids.l[j] = sample.l[idx];
+        centroids.a[j] = sample.a[idx];
+        centroids.b[j] = sample.b[idx];
+    }
+
+    let mut assignments = vec![0u8; n];
+    lloyds_loop(rng, sample, k, &mut assignments, &mut centroids);
+
+    let centroids_vec: Vec<Oklab> = (0..k)
+        .map(|j| Oklab {
+            l: centroids.l[j],
+            a: centroids.a[j],
+            b: centroids.b[j],
+        })
+        .collect();
+
+    Centroids {
+        centroids: centroids_vec,
+        assignments: assignments.iter().map(|&a| a as usize).collect(),
     }
 }
 

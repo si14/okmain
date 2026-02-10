@@ -12,7 +12,6 @@ pub mod rng;
 mod rng;
 
 use snafu::prelude::*;
-use std::ops::Deref;
 
 const U16_MAX: u16 = u16::MAX;
 
@@ -179,7 +178,7 @@ pub fn colors_from_rgb_buffer(width: u16, height: u16, buf: &[u8]) -> Result<Vec
 /// Extract the dominant color from an [`image::ImageBuffer`] of RGB pixels.
 #[cfg(feature = "image")]
 pub fn colors_from_image<
-    Container: Deref<Target = [<image::Rgb<u8> as image::Pixel>::Subpixel]>,
+    Container: std::ops::Deref<Target = [<image::Rgb<u8> as image::Pixel>::Subpixel]>,
 >(
     img: &image::ImageBuffer<image::Rgb<u8>, Container>,
 ) -> Result<Vec<SRGB>, Error> {

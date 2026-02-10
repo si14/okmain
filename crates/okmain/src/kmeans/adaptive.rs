@@ -1,4 +1,4 @@
-use super::{vanilla_llm, Centroids, ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS};
+use super::{lloyds, Centroids, ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS};
 use crate::oklab_soa::SampledOklabSoA;
 use crate::Oklab;
 use rand::RngExt;
@@ -19,7 +19,7 @@ fn count_similar_clusters(centroids: &[Oklab]) -> usize {
 pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA) -> Centroids {
     let mut k = MAX_CENTROIDS;
     loop {
-        let result = vanilla_llm::find_centroids(rng, sample, k);
+        let result = lloyds::find_centroids(rng, sample, k);
         let similar_count = count_similar_clusters(&result.centroids);
         if similar_count == 0 || k <= 1 {
             break result;

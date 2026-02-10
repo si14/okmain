@@ -1,8 +1,6 @@
 pub mod adaptive;
-mod lloyds;
-pub mod minibatch;
+pub mod lloyds;
 pub mod plus_plus_init;
-pub mod vanilla_llm;
 
 use crate::Oklab;
 
