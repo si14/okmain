@@ -1,128 +1,62 @@
-use criterion::{
-    criterion_group, criterion_main, AxisScale, BenchmarkId, Criterion, PlotConfiguration,
-};
-use okmain::kmeans::{lloyds, plus_plus_init};
+use criterion::{criterion_group, criterion_main, Criterion};
+use okmain::kmeans::{lloyds, plus_plus_init, MAX_CENTROIDS};
 use okmain::oklab_soa::SampledOklabSoA;
 use okmain::rng;
 use rand::RngExt;
-use std::collections::HashMap;
 
 fn generate_random_points(n: usize) -> SampledOklabSoA {
     let mut rng = rng::new();
-
     let mut sampled = SampledOklabSoA::new(n);
-
     sampled.x.resize(n, 0);
     sampled.y.resize(n, 0);
-
     for _ in 0..n {
         sampled.l.push(rng.random::<f32>());
         sampled.a.push(rng.random::<f32>());
         sampled.b.push(rng.random::<f32>());
     }
-
     sampled
-}
-
-fn generate_clustered_points(n: usize, k: usize) -> SampledOklabSoA {
-    let mut rng = rng::new();
-
-    let mut sampled = SampledOklabSoA::new(n);
-
-    let centers: Vec<(f32, f32, f32)> = vec![
-        (0.2, 0.1, 0.5),
-        (0.8, 0.3, 2.0),
-        (0.5, 0.2, 4.0),
-        (0.3, 0.4, 5.5),
-    ];
-    let noise = 0.01;
-
-    let mut gen_noise = || (rng.random::<f32>() - 0.5) * noise;
-
-    sampled.x.resize(n, 0);
-    sampled.y.resize(n, 0);
-
-    for i in 0..n {
-        let (c_l, c_a, c_b) = centers[i % k];
-        sampled.l.push(c_l + gen_noise());
-        sampled.a.push(c_a + gen_noise());
-        sampled.b.push(c_b + gen_noise());
-    }
-
-    sampled
-}
-
-struct Input<'a> {
-    pub label: String,
-    pub k: usize,
-    pub samples: &'a HashMap<usize, SampledOklabSoA>,
 }
 
 fn bench(c: &mut Criterion) {
-    let plot_config = PlotConfiguration::default().summary_scale(AxisScale::Logarithmic);
+    let sample = generate_random_points(500_000);
+    let k = 4;
 
-    let mut random_samples: HashMap<usize, SampledOklabSoA> = HashMap::new();
-    random_samples.insert(100_000, generate_random_points(100_000));
-    random_samples.insert(1_000_000, generate_random_points(1_000_000));
-    random_samples.insert(10_000_000, generate_random_points(10_000_000));
-
-    let mut clustered_samples: HashMap<usize, SampledOklabSoA> = HashMap::new();
-    clustered_samples.insert(100_000, generate_clustered_points(100_000, 4));
-    clustered_samples.insert(1_000_000, generate_clustered_points(1_000_000, 4));
-    clustered_samples.insert(10_000_000, generate_clustered_points(10_000_000, 4));
-
-    let ks = [2usize, 4usize];
-    let sizes = [
-        ("100k", 100_000usize),
-        ("1M", 1_000_000usize),
-        ("10M", 10_000_000usize),
-    ];
-
-    let group_inputs = ks
-        .iter()
-        .flat_map(|&k| {
-            [
-                ("random", &random_samples),
-                ("clustered", &clustered_samples),
-            ]
-            .into_iter()
-            .map(move |(sample_label, samples)| Input {
-                label: format!("{sample_label}-k{k}"),
-                k,
-                samples,
-            })
-        })
-        .collect::<Vec<_>>();
-
-    for group_input in group_inputs {
-        let mut group = c.benchmark_group(format!("plus_plus_init/{}", group_input.label));
-        group.plot_config(plot_config.clone());
-
-        for &(size_name, size) in sizes.iter() {
-            group.bench_with_input(BenchmarkId::from_parameter(size_name), &size, |b, size| {
-                let sample = group_input.samples.get(size).unwrap();
-                b.iter_with_large_drop(|| {
-                    let rng = &mut rng::new();
-                    plus_plus_init::find_initial(rng, sample, group_input.k)
-                })
-            });
-        }
-        group.finish();
-
-        let mut group = c.benchmark_group(format!("lloyds/{}", group_input.label));
-        group.plot_config(plot_config.clone());
-
-        for &(size_name, size) in sizes.iter() {
-            group.bench_with_input(BenchmarkId::from_parameter(size_name), &size, |b, size| {
-                let sample = group_input.samples.get(size).unwrap();
-                b.iter_with_large_drop(|| {
-                    let rng = &mut rng::new();
-                    lloyds::find_centroids(rng, sample, group_input.k)
-                })
-            });
-        }
-        group.finish();
+    // Pre-compute initial centroids for assign_points bench
+    let init_indices = plus_plus_init::find_initial(&mut rng::new(), &sample, k);
+    let mut centroids = lloyds::CentroidSoA {
+        l: [f32::MAX; MAX_CENTROIDS],
+        a: [f32::MAX; MAX_CENTROIDS],
+        b: [f32::MAX; MAX_CENTROIDS],
+    };
+    for (j, &idx) in init_indices.iter().enumerate() {
+        centroids.l[j] = sample.l[idx];
+        centroids.a[j] = sample.a[idx];
+        centroids.b[j] = sample.b[idx];
     }
+
+    // Pre-compute assignments for update_centroids bench
+    let mut assignments = vec![0u8; sample.l.len()];
+    lloyds::assign_points(&sample, &centroids, &mut assignments);
+
+    c.bench_function("plus_plus_init", |b| {
+        b.iter(|| plus_plus_init::find_initial(&mut rng::new(), &sample, k))
+    });
+
+    c.bench_function("assign_points", |b| {
+        let mut assign_buf = vec![0u8; sample.l.len()];
+        b.iter(|| lloyds::assign_points(&sample, &centroids, &mut assign_buf))
+    });
+
+    c.bench_function("update_centroids", |b| {
+        b.iter(|| {
+            let mut centroids_copy = centroids;
+            lloyds::update_centroids(&sample, k, &assignments, &mut centroids_copy)
+        })
+    });
+
+    c.bench_function("find_centroids", |b| {
+        b.iter(|| lloyds::find_centroids(&mut rng::new(), &sample, k))
+    });
 }
 
 criterion_group!(benches, bench);
