@@ -268,23 +268,38 @@ pub struct UpdateResult {
 #[inline]
 pub fn update_centroids(
     sample: &SampledOklabSoA,
-    k: usize,
+    _k: usize,
     assignments: &[u8],
     centroids: &mut CentroidSoA,
 ) -> UpdateResult {
-    let mut counts = [0u32; MAX_CENTROIDS];
+    let mut counts_f = [0f32; MAX_CENTROIDS];
     let mut sums_l = [0f32; MAX_CENTROIDS];
     let mut sums_a = [0f32; MAX_CENTROIDS];
     let mut sums_b = [0f32; MAX_CENTROIDS];
 
-    for (i, assigned_c) in assignments.iter().copied().enumerate() {
-        debug_assert!(assigned_c < k as u8);
+    // Single pass: inner loop over k=0..4 is unrolled by LLVM into 4-wide
+    // xmm SIMD (one lane per centroid). Each accumulator is a fixed location,
+    // so there's no scatter — unlike the original data-dependent indexing.
+    for (i, &assigned_c) in assignments.iter().enumerate() {
+        let l = sample.l[i];
+        let a = sample.a[i];
+        let b = sample.b[i];
+        for k in 0..MAX_CENTROIDS {
+            // Branchless mask: bool → all-ones/all-zeros → AND with 1.0f32's bits.
+            // Avoids the int→float conversion (vcvtdq2ps) in the hot loop.
+            let mask = f32::from_bits(
+                ((assigned_c == k as u8) as u32).wrapping_neg() & 1.0f32.to_bits(),
+            );
+            counts_f[k] += mask;
+            sums_l[k] = mask.mul_add(l, sums_l[k]);
+            sums_a[k] = mask.mul_add(a, sums_a[k]);
+            sums_b[k] = mask.mul_add(b, sums_b[k]);
+        }
+    }
 
-        let assigned_c = assigned_c as usize;
-        counts[assigned_c] += 1;
-        sums_l[assigned_c] += sample.l[i];
-        sums_a[assigned_c] += sample.a[i];
-        sums_b[assigned_c] += sample.b[i];
+    let mut counts = [0u32; MAX_CENTROIDS];
+    for i in 0..MAX_CENTROIDS {
+        counts[i] = counts_f[i] as u32;
     }
 
     let mut shift_squared = 0f32;
@@ -295,9 +310,9 @@ pub fn update_centroids(
             continue;
         }
 
-        let new_l = sums_l[i] / counts[i] as f32;
-        let new_a = sums_a[i] / counts[i] as f32;
-        let new_b = sums_b[i] / counts[i] as f32;
+        let new_l = sums_l[i] / counts_f[i];
+        let new_a = sums_a[i] / counts_f[i];
+        let new_b = sums_b[i] / counts_f[i];
 
         let dl = centroids.l[i] - new_l;
         let da = centroids.a[i] - new_a;
