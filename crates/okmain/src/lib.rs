@@ -76,6 +76,7 @@ const DISTANCE_WEIGHT_SATURATED_MIDDLE_THRESHOLD: f32 = 0.3;
 const WEIGHTED_COUNTS_WEIGHT: f32 = 0.3;
 const CHROMA_WEIGHT: f32 = 0.7;
 
+// todo: verify
 fn distance_weight(x: u16, y: u16, width: u16, height: u16) -> f32 {
     let nx = if width <= 1 {
         0.0
@@ -93,9 +94,10 @@ fn distance_weight(x: u16, y: u16, width: u16, height: u16) -> f32 {
     if d <= DISTANCE_WEIGHT_SATURATED_MIDDLE_THRESHOLD {
         1.0
     } else {
-        0.01
-            + 0.99 * (1.0 - (d - DISTANCE_WEIGHT_SATURATED_MIDDLE_THRESHOLD)
-                / (1.0 - DISTANCE_WEIGHT_SATURATED_MIDDLE_THRESHOLD))
+        0.01 + 0.99
+            * (1.0
+                - (d - DISTANCE_WEIGHT_SATURATED_MIDDLE_THRESHOLD)
+                    / (1.0 - DISTANCE_WEIGHT_SATURATED_MIDDLE_THRESHOLD))
     }
 }
 

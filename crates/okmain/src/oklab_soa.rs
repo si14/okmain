@@ -151,8 +151,8 @@ mod tests {
 
     #[test]
     fn block_size_at_boundary() {
-        // 707*707 = 499_849 < MAX_SAMPLE_SIZE => block_size = 1
-        assert_eq!(block_size(707, 707), 1);
+        // 499*499 = 249,001 < MAX_SAMPLE_SIZE => block_size = 1
+        assert_eq!(block_size(499, 499), 1);
     }
 
     #[test]
@@ -203,8 +203,8 @@ mod tests {
 
     #[test]
     fn sample_at_boundary() {
-        let pixels = 707 * 707;
-        let result = sample(707, 707, &vec![50u8; pixels * 3]);
+        let pixels = 499 * 499;
+        let result = sample(499, 499, &vec![50u8; pixels * 3]);
         assert_all_len(&result, pixels);
     }
 

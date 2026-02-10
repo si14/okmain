@@ -1,11 +1,23 @@
-use super::{Centroids, MAX_CENTROIDS};
+use super::MAX_CENTROIDS;
 use crate::kmeans::plus_plus_init::find_initial;
 use crate::oklab_soa::SampledOklabSoA;
 use crate::Oklab;
 use rand::RngExt;
 
+// References:
+// - https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
+// - https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MiniBatchKMeans.html
+// - Web-Scale K-Means Clustering (D. Sculley)
+//   https://dl.acm.org/doi/epdf/10.1145/1772690.1772862
+// - Noisy, Greedy and Not so Greedy k-Means++ (A. Bhattacharya et al)
+//   https://drops.dagstuhl.de/storage/00lipics/lipics-vol173-esa2020/LIPIcs.ESA.2020.18/LIPIcs.ESA.2020.18.pdf
+//
+// Observations:
+// - Mini-batch K-means is not worth it. It's slower than classic K-means on the relevant
+//   datasets.
+
 // sklearn KMeans defaults
-const MAX_ITER: usize = 300;
+const MAX_ITERATIONS: usize = 300;
 const CONVERGENCE_TOLERANCE: f32 = 1e-4;
 
 #[derive(Debug, Copy, Clone)]
@@ -227,7 +239,7 @@ pub struct CentroidSoA {
 // }
 
 #[inline(always)]
-fn distance(c_l: f32, c_a: f32, c_b: f32, l: f32, a: f32, b: f32) -> f32 {
+pub fn squared_distance(c_l: f32, c_a: f32, c_b: f32, l: f32, a: f32, b: f32) -> f32 {
     let dl = c_l - l;
     let da = c_a - a;
     let db = c_b - b;
@@ -241,7 +253,7 @@ pub fn assign_points(sample: &SampledOklabSoA, centroids: &CentroidSoA, assignme
         let mut min = f32::MAX;
         let mut min_idx = 0;
         for j in 0..MAX_CENTROIDS {
-            let d = distance(
+            let d = squared_distance(
                 centroids.l[j],
                 centroids.a[j],
                 centroids.b[j],
@@ -277,19 +289,14 @@ pub fn update_centroids(
     let mut sums_a = [0f32; MAX_CENTROIDS];
     let mut sums_b = [0f32; MAX_CENTROIDS];
 
-    // Single pass: inner loop over k=0..4 is unrolled by LLVM into 4-wide
-    // xmm SIMD (one lane per centroid). Each accumulator is a fixed location,
-    // so there's no scatter — unlike the original data-dependent indexing.
     for (i, &assigned_c) in assignments.iter().enumerate() {
         let l = sample.l[i];
         let a = sample.a[i];
         let b = sample.b[i];
         for k in 0..MAX_CENTROIDS {
-            // Branchless mask: bool → all-ones/all-zeros → AND with 1.0f32's bits.
-            // Avoids the int→float conversion (vcvtdq2ps) in the hot loop.
-            let mask = f32::from_bits(
-                ((assigned_c == k as u8) as u32).wrapping_neg() & 1.0f32.to_bits(),
-            );
+            // This construction auto-vectorises a bit better
+            let mask = ((assigned_c == k as u8) as u32) as f32;
+
             counts_f[k] += mask;
             sums_l[k] = mask.mul_add(l, sums_l[k]);
             sums_a[k] = mask.mul_add(a, sums_a[k]);
@@ -333,7 +340,8 @@ pub fn update_centroids(
 
 #[allow(dead_code)] // used for debug output
 pub struct LloydsLoopResult {
-    pub iterations: usize,
+    pub loop_iterations: usize,
+    pub converged: bool,
 }
 
 pub fn lloyds_loop(
@@ -356,7 +364,7 @@ pub fn lloyds_loop(
         assert_eq!(centroids.b[i], f32::MAX);
     }
 
-    for i in 0..MAX_ITER {
+    for i in 0..MAX_ITERATIONS {
         assign_points(sample, centroids, assignments);
         let update_result = update_centroids(sample, k, assignments, centroids);
 
@@ -371,16 +379,27 @@ pub fn lloyds_loop(
         }
 
         if update_result.shift_squared < CONVERGENCE_TOLERANCE {
-            return LloydsLoopResult { iterations: i + 1 };
+            return LloydsLoopResult {
+                loop_iterations: i + 1,
+                converged: true,
+            };
         }
     }
 
     LloydsLoopResult {
-        iterations: MAX_ITER,
+        loop_iterations: MAX_ITERATIONS,
+        converged: false,
     }
 }
 
-pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize) -> Centroids {
+pub struct Result {
+    pub centroids: Vec<Oklab>,
+    pub assignments: Vec<usize>,
+    pub loop_iterations: usize,
+    pub converged: bool,
+}
+
+pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize) -> Result {
     let n = sample.l.len();
     let k = k.min(n);
 
@@ -398,7 +417,10 @@ pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize)
     }
 
     let mut assignments = vec![0u8; n];
-    lloyds_loop(rng, sample, k, &mut assignments, &mut centroids);
+    let LloydsLoopResult {
+        loop_iterations: iterations,
+        converged,
+    } = lloyds_loop(rng, sample, k, &mut assignments, &mut centroids);
 
     let centroids_vec: Vec<Oklab> = (0..k)
         .map(|j| Oklab {
@@ -408,9 +430,11 @@ pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize)
         })
         .collect();
 
-    Centroids {
+    Result {
         centroids: centroids_vec,
         assignments: assignments.iter().map(|&a| a as usize).collect(),
+        loop_iterations: iterations,
+        converged,
     }
 }
 

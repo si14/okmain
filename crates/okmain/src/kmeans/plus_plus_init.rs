@@ -1,22 +1,13 @@
+use crate::kmeans::lloyds::squared_distance;
 use crate::oklab_soa::SampledOklabSoA;
 use rand::RngExt;
 
-#[inline(always)]
-pub(crate) fn squared_distance(l: &[f32], a: &[f32], b: &[f32], x1: usize, x2: usize) -> f32 {
-    let dl = l[x1] - l[x2];
-    let da = a[x1] - a[x2];
-    let db = b[x1] - b[x2];
-
-    dl.mul_add(dl, da.mul_add(da, db * db))
-}
+// Scikit uses (2+log(k)), which is 3 or 4 for k=1..4, we can settle on 3
+const N_CANDIDATES: usize = 3;
 
 #[inline(always)]
-fn sample_by_distance(rng: &mut impl RngExt, min_distances: &[f32]) -> usize {
-    let sum_min_distances = min_distances.iter().sum::<f32>();
-
-    // I don't really need to normalise the probabilities to sample from them,
-    // multiplying the threshold by the sum of the distances is exactly the same
-    let random_threshold = rng.random::<f32>() * sum_min_distances;
+fn sample_by_distance(rng: &mut impl RngExt, min_distances: &[f32], sum: f32) -> usize {
+    let random_threshold = rng.random::<f32>() * sum;
     let mut cumsum = 0.0;
 
     for (i, &distance) in min_distances.iter().enumerate() {
@@ -45,42 +36,72 @@ pub fn find_initial(
     let c0 = rng.random_range(0..n);
     init_points.push(c0);
 
-    let mut min_distances: Vec<f32> = (0..n).map(|x| squared_distance(l, a, b, c0, x)).collect();
+    let (c0l, c0a, c0b) = (l[c0], a[c0], b[c0]);
+    let mut min_distances = vec![0.0f32; n];
+    let mut min_distances_sum = 0.0f32;
+    for i in 0..n {
+        let d = squared_distance(l[i], a[i], b[i], c0l, c0a, c0b);
+        min_distances[i] = d;
+        min_distances_sum += d;
+    }
+
+    let mut candidate_min_distances0 = vec![0.0f32; n];
+    let mut candidate_min_distances1 = vec![0.0f32; n];
+    let mut candidate_min_distances2 = vec![0.0f32; n];
 
     // Greedy k-means++: sample multiple candidates per step and pick the one
     // that minimises the total potential (sum of min distances).
-    let n_candidates = (2.0 + (k as f64).ln()).floor() as usize;
 
     for _ in 1..k {
-        let mut best_candidate = 0usize;
+        // Sample all candidates upfront (uses cached sum)
+        let mut candidates = [0usize; N_CANDIDATES];
+        for candidate in candidates.iter_mut() {
+            *candidate = sample_by_distance(rng, &min_distances, min_distances_sum);
+        }
+
+        let cl = candidates.map(|c| l[c]);
+        let ca = candidates.map(|c| a[c]);
+        let cb = candidates.map(|c| b[c]);
+
+        let mut potentials = [0.0f32; N_CANDIDATES];
+
+        // mut slices seem to reassure the compiler that the vectors don't alias
+        let out0 = candidate_min_distances0.as_mut_slice();
+        let out1 = candidate_min_distances1.as_mut_slice();
+        let out2 = candidate_min_distances2.as_mut_slice();
+
+        for i in 0..n {
+            let (li, ai, bi, current_min) = (l[i], a[i], b[i], min_distances[i]);
+            let d0 = squared_distance(cl[0], ca[0], cb[0], li, ai, bi).min(current_min);
+            let d1 = squared_distance(cl[1], ca[1], cb[1], li, ai, bi).min(current_min);
+            let d2 = squared_distance(cl[2], ca[2], cb[2], li, ai, bi).min(current_min);
+            out0[i] = d0;
+            out1[i] = d1;
+            out2[i] = d2;
+            potentials[0] += d0;
+            potentials[1] += d1;
+            potentials[2] += d2;
+        }
+
         let mut best_potential = f32::INFINITY;
-
-        for _ in 0..n_candidates {
-            let candidate = sample_by_distance(rng, &min_distances);
-
-            // Compute what the potential would be if we picked this candidate
-            let potential: f32 = min_distances
-                .iter()
-                .enumerate()
-                .map(|(x, &cur_dist)| {
-                    let cand_dist = squared_distance(l, a, b, candidate, x);
-                    cur_dist.min(cand_dist)
-                })
-                .sum();
-
+        let mut best = 0;
+        for (i, potential) in potentials.iter().copied().enumerate().take(N_CANDIDATES) {
             if potential < best_potential {
                 best_potential = potential;
-                best_candidate = candidate;
+                best = i;
             }
         }
 
-        // Update min_distances with the winner
-        for (x, distance) in min_distances.iter_mut().enumerate() {
-            let new_distance = squared_distance(l, a, b, best_candidate, x);
-            *distance = distance.min(new_distance);
-        }
-
-        init_points.push(best_candidate);
+        std::mem::swap(
+            &mut min_distances,
+            [
+                &mut candidate_min_distances0,
+                &mut candidate_min_distances1,
+                &mut candidate_min_distances2,
+            ][best],
+        );
+        min_distances_sum = best_potential;
+        init_points.push(candidates[best]);
     }
 
     init_points

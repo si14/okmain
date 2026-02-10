@@ -1,4 +1,4 @@
-use super::{lloyds, Centroids, ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS};
+use super::{lloyds, ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS};
 use crate::oklab_soa::SampledOklabSoA;
 use crate::Oklab;
 use rand::RngExt;
@@ -16,16 +16,34 @@ fn count_similar_clusters(centroids: &[Oklab]) -> usize {
     count
 }
 
-pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA) -> Centroids {
+pub struct Result {
+    pub centroids: Vec<Oklab>,
+    pub assignments: Vec<usize>,
+    pub loop_iterations: Vec<usize>,
+    pub converged: Vec<bool>,
+}
+
+pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA) -> Result {
     let mut k = MAX_CENTROIDS;
+    let mut loop_iterations = Vec::with_capacity(MAX_CENTROIDS);
+    let mut converged = Vec::with_capacity(MAX_CENTROIDS);
+
     loop {
         let result = lloyds::find_centroids(rng, sample, k);
+
+        loop_iterations.push(result.loop_iterations);
+        converged.push(result.converged);
+
         let similar_count = count_similar_clusters(&result.centroids);
         if similar_count == 0 || k <= 1 {
-            break result;
+            break Result {
+                centroids: result.centroids,
+                assignments: result.assignments,
+                loop_iterations,
+                converged,
+            };
         }
         k -= 1;
-        //k = k.saturating_sub(similar_count).max(1);
     }
 }
 
