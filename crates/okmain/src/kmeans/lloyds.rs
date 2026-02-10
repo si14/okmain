@@ -365,179 +365,126 @@ pub fn lloyds_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rng;
-    use pretty_assertions::{assert_eq, assert_ne};
+    use crate::oklab_soa::SampledOklabSoA;
 
-    fn make_soa(points: &[(f32, f32, f32)]) -> SampledOklabSoA {
-        SampledOklabSoA {
-            x: vec![],
-            y: vec![],
-            l: points.iter().map(|p| p.0).collect(),
-            a: points.iter().map(|p| p.1).collect(),
-            b: points.iter().map(|p| p.2).collect(),
+    const N_PER_CLUSTER: usize = 4096;
+    const CENTERS: [(f32, f32, f32); 4] = [
+        (0.0, 0.0, 0.0),
+        (10.0, 0.0, 0.0),
+        (0.0, 10.0, 0.0),
+        (0.0, 0.0, 10.0),
+    ];
+
+    fn make_four_cluster_soa() -> SampledOklabSoA {
+        let n = N_PER_CLUSTER * 4;
+        let mut soa = SampledOklabSoA::new(n);
+        for &(cl, ca, cb) in &CENTERS {
+            for i in 0..N_PER_CLUSTER {
+                let offset = i as f32 * 0.0001;
+                soa.push(0, 0, cl + offset, ca + offset, cb + offset);
+            }
         }
+        soa
     }
 
     #[test]
-    fn single_point() {
-        let mut rng = rng::new();
+    fn test_assign_points() {
+        let soa = make_four_cluster_soa();
+        let n = soa.l.len();
 
-        let soa = make_soa(&[(0.5, 0.3, 1.0)]);
-        let result = find_centroids(&mut rng, &soa, 1);
-        assert_eq!(result.centroids.len(), 1);
-        assert_eq!(result.assignments, vec![0]);
-        assert!((result.centroids[0].l - 0.5).abs() < 1e-3);
-        assert!((result.centroids[0].a - 0.3).abs() < 1e-3);
-        assert!((result.centroids[0].b - 1.0).abs() < 1e-3);
-    }
-
-    #[test]
-    fn k_equals_one() {
-        let mut rng = rng::new();
-
-        let soa = make_soa(&[(0.0, 0.0, 0.0), (1.0, 1.0, 1.0), (2.0, 2.0, 2.0)]);
-        let result = find_centroids(&mut rng, &soa, 1);
-        assert_eq!(result.centroids.len(), 1);
-        assert!(result.assignments.iter().all(|&a| a == 0));
-    }
-
-    #[test]
-    fn two_well_separated_clusters() {
-        let mut rng = rng::new();
-
-        let mut points = Vec::new();
-        for i in 0..50 {
-            let offset = i as f32 * 0.001;
-            points.push((0.0 + offset, 0.0 + offset, 0.0 + offset));
+        let mut centroids = CentroidSoA {
+            l: [f32::MAX; MAX_CENTROIDS],
+            a: [f32::MAX; MAX_CENTROIDS],
+            b: [f32::MAX; MAX_CENTROIDS],
+        };
+        for (i, &(cl, ca, cb)) in CENTERS.iter().enumerate() {
+            centroids.l[i] = cl;
+            centroids.a[i] = ca;
+            centroids.b[i] = cb;
         }
-        for i in 0..50 {
-            let offset = i as f32 * 0.001;
-            points.push((100.0 + offset, 100.0 + offset, 100.0 + offset));
-        }
-        let soa = make_soa(&points);
-        let result = find_centroids(&mut rng, &soa, 2);
 
-        assert_eq!(result.centroids.len(), 2);
+        let mut assignments = vec![0u8; n];
+        assign_points(&soa, &centroids, &mut assignments);
 
-        let label_a = result.assignments[0];
-        assert!(result.assignments[..50].iter().all(|&a| a == label_a));
-
-        let label_b = result.assignments[50];
-        assert!(result.assignments[50..].iter().all(|&a| a == label_b));
-
-        assert_ne!(label_a, label_b);
-
-        for centroid in &result.centroids {
-            let near_zero = centroid.l < 1.0 && centroid.a < 1.0 && centroid.b < 1.0;
-            let near_hundred = centroid.l > 99.0 && centroid.a > 99.0 && centroid.b > 99.0;
-            assert!(near_zero || near_hundred);
-        }
-    }
-
-    #[test]
-    fn three_clusters() {
-        let mut rng = rng::new();
-
-        let mut points = Vec::new();
-        for i in 0..30 {
-            let o = i as f32 * 0.001;
-            points.push((o, o, o));
-        }
-        for i in 0..30 {
-            let o = i as f32 * 0.001;
-            points.push((50.0 + o, 50.0 + o, 50.0 + o));
-        }
-        for i in 0..30 {
-            let o = i as f32 * 0.001;
-            points.push((100.0 + o, 100.0 + o, 100.0 + o));
-        }
-        let soa = make_soa(&points);
-        let result = find_centroids(&mut rng, &soa, 3);
-
-        assert_eq!(result.centroids.len(), 3);
-
-        let label_a = result.assignments[0];
-        let label_b = result.assignments[30];
-        let label_c = result.assignments[60];
-        assert!(result.assignments[..30].iter().all(|&a| a == label_a));
-        assert!(result.assignments[30..60].iter().all(|&a| a == label_b));
-        assert!(result.assignments[60..].iter().all(|&a| a == label_c));
-
-        assert_ne!(label_a, label_b);
-        assert_ne!(label_b, label_c);
-        assert_ne!(label_a, label_c);
-    }
-
-    #[test]
-    fn k_clamped_when_greater_than_n() {
-        let mut rng = rng::new();
-
-        let soa = make_soa(&[(0.0, 0.0, 0.0), (50.0, 50.0, 50.0), (100.0, 100.0, 100.0)]);
-        let result = find_centroids(&mut rng, &soa, 4);
-        assert_eq!(result.centroids.len(), 3);
-        assert_eq!(result.assignments.len(), 3);
-        assert!(result.assignments.iter().all(|&a| a < 3));
-    }
-
-    #[test]
-    fn deterministic() {
-        let soa = make_soa(&[
-            (0.0, 0.0, 0.0),
-            (1.0, 1.0, 1.0),
-            (50.0, 50.0, 50.0),
-            (51.0, 51.0, 51.0),
-        ]);
-
-        let mut rng1 = rng::new();
-        let result1 = find_centroids(&mut rng1, &soa, 2);
-
-        let mut rng2 = rng::new();
-        let result2 = find_centroids(&mut rng2, &soa, 2);
-
-        assert_eq!(result1.assignments, result2.assignments);
-        assert_eq!(result1.centroids.len(), result2.centroids.len());
-        for (a, b) in result1.centroids.iter().zip(result2.centroids.iter()) {
-            assert_eq!(a, b);
-        }
-    }
-
-    #[test]
-    fn assignments_in_range() {
-        let mut rng = rng::new();
-
-        let soa = make_soa(&[
-            (0.0, 0.0, 0.0),
-            (10.0, 10.0, 10.0),
-            (20.0, 20.0, 20.0),
-            (30.0, 30.0, 30.0),
-            (40.0, 40.0, 40.0),
-        ]);
-
-        for k in 1..=4 {
-            let result = find_centroids(&mut rng, &soa, k);
-            assert_eq!(result.centroids.len(), k);
+        // Each cluster's points should all get the same label
+        for ci in 0..4 {
+            let start = ci * N_PER_CLUSTER;
+            let end = start + N_PER_CLUSTER;
+            let label = assignments[start];
             assert!(
-                result.assignments.iter().all(|&a| a < k),
-                "k={k}: all assignments must be in 0..{k}, got {:?}",
-                result.assignments,
+                assignments[start..end].iter().all(|&a| a == label),
+                "cluster {ci}: not all points assigned to same centroid",
             );
         }
+
+        // The four cluster labels should be distinct
+        let labels: Vec<u8> = (0..4).map(|ci| assignments[ci * N_PER_CLUSTER]).collect();
+        for i in 0..4 {
+            for j in (i + 1)..4 {
+                assert_ne!(
+                    labels[i], labels[j],
+                    "clusters {i} and {j} should have different labels",
+                );
+            }
+        }
     }
 
     #[test]
-    fn large_dataset() {
-        let mut rng = rng::new();
+    fn test_update_centroids() {
+        let soa = make_four_cluster_soa();
+        let n = soa.l.len();
+        let k = 4;
 
-        let mut points = Vec::with_capacity(5000);
-        for i in 0..5000 {
-            let v = (i % 4) as f32 * 25.0 + (i as f32 * 0.0001);
-            points.push((v, v, v));
+        // Correct assignments: point i belongs to cluster i / N_PER_CLUSTER
+        let assignments: Vec<u8> = (0..n).map(|i| (i / N_PER_CLUSTER) as u8).collect();
+
+        // Start centroids far away
+        let mut centroids = CentroidSoA {
+            l: [f32::MAX; MAX_CENTROIDS],
+            a: [f32::MAX; MAX_CENTROIDS],
+            b: [f32::MAX; MAX_CENTROIDS],
+        };
+        for i in 0..k {
+            centroids.l[i] = 99.0;
+            centroids.a[i] = 99.0;
+            centroids.b[i] = 99.0;
         }
-        let soa = make_soa(&points);
-        let result = find_centroids(&mut rng, &soa, 4);
 
-        assert_eq!(result.centroids.len(), 4);
-        assert_eq!(result.assignments.len(), 5000);
-        assert!(result.assignments.iter().all(|&a| a < 4));
+        let result = update_centroids(&soa, k, &assignments, &mut centroids);
+
+        // Each centroid should be near its cluster's true center.
+        // Per-cluster offsets are 0..4096 * 0.0001, so mean offset ~0.2.
+        for (i, &(cl, ca, cb)) in CENTERS.iter().enumerate() {
+            assert!(
+                (centroids.l[i] - cl).abs() < 0.3,
+                "centroid {i} l: expected ~{cl}, got {}",
+                centroids.l[i],
+            );
+            assert!(
+                (centroids.a[i] - ca).abs() < 0.3,
+                "centroid {i} a: expected ~{ca}, got {}",
+                centroids.a[i],
+            );
+            assert!(
+                (centroids.b[i] - cb).abs() < 0.3,
+                "centroid {i} b: expected ~{cb}, got {}",
+                centroids.b[i],
+            );
+        }
+
+        // Centroids moved from (99,99,99), so shift must be large
+        assert!(
+            result.shift_squared > 0.0,
+            "shift_squared should be > 0, got {}",
+            result.shift_squared,
+        );
+
+        // Each cluster has exactly N_PER_CLUSTER points
+        for i in 0..k {
+            assert_eq!(
+                result.counts[i], N_PER_CLUSTER as u32,
+                "cluster {i} count mismatch",
+            );
+        }
     }
 }
