@@ -30,9 +30,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/registry/index
-            ~/.cargo/registry/cache
-            ~/.cargo/git/db
+            ~/.cargo/registry/
+            ~/.cargo/git/
           key: cargo-deps-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-deps-${{ runner.os }}-
 
