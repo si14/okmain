@@ -1,6 +1,6 @@
-use super::{lloyds, ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS};
-use crate::sample::SampledOklabSoA;
+use super::{ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS, lloyds};
 use crate::Oklab;
+use crate::sample::SampledOklabSoA;
 use rand::RngExt;
 
 fn count_similar_clusters(centroids: &[Oklab]) -> usize {

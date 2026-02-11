@@ -1,5 +1,5 @@
-use criterion::{criterion_group, criterion_main, Criterion};
-use okmain::kmeans::{lloyds, plus_plus_init, MAX_CENTROIDS};
+use criterion::{Criterion, criterion_group, criterion_main};
+use okmain::kmeans::{MAX_CENTROIDS, lloyds, plus_plus_init};
 use okmain::rng;
 use okmain::sample::SampledOklabSoA;
 use rand::RngExt;

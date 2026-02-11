@@ -10,7 +10,7 @@ fn main() {
         std::process::exit(1);
     }
     let folder = PathBuf::from(&args[1]);
-    let k: usize = args
+    let _k: usize = args
         .get(2)
         .map_or(4, |s| s.parse().expect("k must be a number"));
 
@@ -20,7 +20,7 @@ fn main() {
         .map(|e| e.path())
         .filter(|p| {
             p.extension()
-                .map_or(false, |ext| ext.eq_ignore_ascii_case("jpg"))
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("jpg"))
         })
         .collect();
     files.sort();

@@ -1,7 +1,7 @@
 use super::MAX_CENTROIDS;
+use crate::Oklab;
 use crate::kmeans::plus_plus_init::find_initial;
 use crate::sample::SampledOklabSoA;
-use crate::Oklab;
 use rand::RngExt;
 
 // References:
