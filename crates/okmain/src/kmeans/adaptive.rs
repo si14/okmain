@@ -1,6 +1,6 @@
-use super::{ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS, lloyds};
-use crate::Oklab;
+use super::{lloyds, ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS};
 use crate::sample::SampledOklabSoA;
+use crate::types::Oklab;
 use rand::RngExt;
 
 fn count_similar_clusters(centroids: &[Oklab]) -> usize {
@@ -50,6 +50,7 @@ pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::Oklab;
 
     #[test]
     fn no_similar_well_separated() {

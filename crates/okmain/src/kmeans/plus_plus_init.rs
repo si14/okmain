@@ -1,6 +1,7 @@
 use crate::kmeans::lloyds::squared_distance;
 use crate::sample::SampledOklabSoA;
 use rand::RngExt;
+use std::array;
 
 // Scikit uses (2+log(k)), which is 3 or 4 for k=1..4, we can settle on 3
 const N_CANDIDATES: usize = 3;
@@ -45,10 +46,7 @@ pub fn find_initial(
         min_distances_sum += d;
     }
 
-    assert_eq!(N_CANDIDATES, 3, "three unrolled vectors");
-    let mut candidate_min_distances0 = vec![0.0f32; n];
-    let mut candidate_min_distances1 = vec![0.0f32; n];
-    let mut candidate_min_distances2 = vec![0.0f32; n];
+    let mut candidate_min_distances: [_; N_CANDIDATES] = array::from_fn(|_| vec![0.0f32; n]);
 
     // Greedy k-means++: sample multiple candidates per step and pick the one
     // that minimises the total potential (sum of min distances).
@@ -60,28 +58,30 @@ pub fn find_initial(
             *candidate = sample_by_distance(rng, &min_distances, min_distances_sum);
         }
 
-        let cl = candidates.map(|c| l[c]);
-        let ca = candidates.map(|c| a[c]);
-        let cb = candidates.map(|c| b[c]);
+        let candidates_l = candidates.map(|c| l[c]);
+        let candidates_a = candidates.map(|c| a[c]);
+        let candidates_b = candidates.map(|c| b[c]);
 
         let mut potentials = [0.0f32; N_CANDIDATES];
 
         // mut slices seem to reassure the compiler that the vectors don't alias
-        let out0 = candidate_min_distances0.as_mut_slice();
-        let out1 = candidate_min_distances1.as_mut_slice();
-        let out2 = candidate_min_distances2.as_mut_slice();
+        let candidate_min_d_slices = candidate_min_distances.each_mut().map(|v| v.as_mut_slice());
 
         for i in 0..n {
             let (li, ai, bi, current_min) = (l[i], a[i], b[i], min_distances[i]);
-            let d0 = squared_distance(cl[0], ca[0], cb[0], li, ai, bi).min(current_min);
-            let d1 = squared_distance(cl[1], ca[1], cb[1], li, ai, bi).min(current_min);
-            let d2 = squared_distance(cl[2], ca[2], cb[2], li, ai, bi).min(current_min);
-            out0[i] = d0;
-            out1[i] = d1;
-            out2[i] = d2;
-            potentials[0] += d0;
-            potentials[1] += d1;
-            potentials[2] += d2;
+            for j in 0..N_CANDIDATES {
+                let d = squared_distance(
+                    candidates_l[j],
+                    candidates_a[j],
+                    candidates_b[j],
+                    li,
+                    ai,
+                    bi,
+                )
+                .min(current_min);
+                candidate_min_d_slices[j][i] = d;
+                potentials[j] += d;
+            }
         }
 
         let mut best_potential = f32::INFINITY;
@@ -95,11 +95,7 @@ pub fn find_initial(
 
         std::mem::swap(
             &mut min_distances,
-            [
-                &mut candidate_min_distances0,
-                &mut candidate_min_distances1,
-                &mut candidate_min_distances2,
-            ][best],
+            &mut candidate_min_distances.as_mut()[best],
         );
         min_distances_sum = best_potential;
         init_points.push(candidates[best]);

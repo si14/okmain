@@ -10,6 +10,10 @@ mod rng;
 pub mod sample;
 #[cfg(not(any(feature = "_bench", feature = "_debug")))]
 mod sample;
+#[cfg(any(feature = "_bench", feature = "_debug"))]
+pub mod types;
+#[cfg(not(any(feature = "_bench", feature = "_debug")))]
+mod types;
 
 use snafu::prelude::*;
 
@@ -45,31 +49,6 @@ pub struct SRGB {
     pub r: u8,
     pub g: u8,
     pub b: u8,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-#[cfg(any(feature = "_bench", feature = "_debug"))]
-pub struct Oklab {
-    pub l: f32,
-    pub a: f32,
-    pub b: f32,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-#[cfg(not(any(feature = "_bench", feature = "_debug")))]
-pub(crate) struct Oklab {
-    l: f32,
-    a: f32,
-    b: f32,
-}
-
-impl Oklab {
-    pub(crate) fn squared_distance(self, other: Self) -> f32 {
-        let dl = self.l - other.l;
-        let da = self.a - other.a;
-        let db = self.b - other.b;
-        dl.mul_add(dl, da.mul_add(da, db * db))
-    }
 }
 
 const DISTANCE_WEIGHT_SATURATED_MIDDLE_THRESHOLD: f32 = 0.3;
@@ -146,7 +125,7 @@ pub fn colors_from_rgb_buffer(width: u16, height: u16, buf: &[u8]) -> Result<Vec
     }
 
     // Score each centroid: 0.3 * weighted_count + 0.7 * chroma
-    let mut scored: Vec<(f32, &Oklab)> = result
+    let mut scored = result
         .centroids
         .iter()
         .enumerate()
@@ -155,7 +134,7 @@ pub fn colors_from_rgb_buffer(width: u16, height: u16, buf: &[u8]) -> Result<Vec
             let score = WEIGHTED_COUNTS_WEIGHT * weighted_counts[i] + CHROMA_WEIGHT * chroma;
             (score, c)
         })
-        .collect();
+        .collect::<Vec<_>>();
 
     // Sort by score descending
     scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));

@@ -15,4 +15,5 @@ lto = "fat"
 codegen-units = 1
 
 [profile.bench]
+lto = "thin"
 debug = true

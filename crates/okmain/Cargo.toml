@@ -11,7 +11,6 @@ oklab = { version = "1" }
 fast-srgb8 = { version = "1" }
 rand = { version = "0.10.0", default-features = false }
 rand_xoshiro = { version = "0.8" }
-
 image = { version = "0.25", optional = true, default-features = false }
 
 
@@ -22,7 +21,6 @@ criterion = { version = "0.8", features = ["html_reports"] }
 [features]
 default = []
 image = ["dep:image"]
-snafu = []
 _debug = ["image", "image/png", "image/jpeg"]
 _bench = []
 
