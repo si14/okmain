@@ -9,9 +9,8 @@ rust-version.workspace = true
 snafu = { workspace = true }
 oklab = { version = "1" }
 fast-srgb8 = { version = "1" }
-rand = { version = "0.10.0-rc.9", default-features = false }
+rand = { version = "0.10.0", default-features = false }
 rand_xoshiro = { version = "0.8" }
-pulp = { version = "0.22" }
 
 image = { version = "0.25", optional = true, default-features = false }
 
