@@ -129,7 +129,8 @@ pub fn colors_from_rgb_buffer(width: u16, height: u16, buf: &[u8]) -> Result<Vec
 
     let num_centroids = result.centroids.len();
 
-    // Weighted counts per cluster
+    // Number of (downsampled) pixels assigned to each centroid, weighed by
+    // how central the pixels are
     let mut weighted_counts = vec![0.0f32; num_centroids];
     for (i, &assignment) in result.assignments.iter().enumerate() {
         let bx = (i % oklab_soa.width as usize) as u16;
