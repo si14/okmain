@@ -1,10 +1,11 @@
-use crate::kmeans::lloyds::squared_distance;
+use crate::kmeans::lloyds::squared_distance_flat;
+use crate::kmeans::GREEDY_INIT_N_CANDIDATES;
 use crate::sample::SampledOklabSoA;
 use rand::RngExt;
 use std::array;
 
-// Scikit uses (2+log(k)), which is 3 or 4 for k=1..4, we can settle on 3
-const N_CANDIDATES: usize = 3;
+// shorthand for the module
+const N_C: usize = GREEDY_INIT_N_CANDIDATES;
 
 #[inline(always)]
 fn sample_by_distance(rng: &mut impl RngExt, min_distances: &[f32], sum: f32) -> usize {
@@ -41,19 +42,19 @@ pub fn find_initial(
     let mut min_distances = vec![0.0f32; n];
     let mut min_distances_sum = 0.0f32;
     for i in 0..n {
-        let d = squared_distance(l[i], a[i], b[i], c0l, c0a, c0b);
+        let d = squared_distance_flat(l[i], a[i], b[i], c0l, c0a, c0b);
         min_distances[i] = d;
         min_distances_sum += d;
     }
 
-    let mut candidate_min_distances: [_; N_CANDIDATES] = array::from_fn(|_| vec![0.0f32; n]);
+    let mut candidate_min_distances: [_; N_C] = array::from_fn(|_| vec![0.0f32; n]);
 
     // Greedy k-means++: sample multiple candidates per step and pick the one
     // that minimises the total potential (sum of min distances).
 
     for _ in 1..k {
         // Sample all candidates upfront (uses cached sum)
-        let mut candidates = [0usize; N_CANDIDATES];
+        let mut candidates = [0usize; N_C];
         for candidate in candidates.iter_mut() {
             *candidate = sample_by_distance(rng, &min_distances, min_distances_sum);
         }
@@ -62,15 +63,15 @@ pub fn find_initial(
         let candidates_a = candidates.map(|c| a[c]);
         let candidates_b = candidates.map(|c| b[c]);
 
-        let mut potentials = [0.0f32; N_CANDIDATES];
+        let mut potentials = [0.0f32; N_C];
 
         // mut slices seem to reassure the compiler that the vectors don't alias
         let candidate_min_d_slices = candidate_min_distances.each_mut().map(|v| v.as_mut_slice());
 
         for i in 0..n {
             let (li, ai, bi, current_min) = (l[i], a[i], b[i], min_distances[i]);
-            for j in 0..N_CANDIDATES {
-                let d = squared_distance(
+            for j in 0..N_C {
+                let d = squared_distance_flat(
                     candidates_l[j],
                     candidates_a[j],
                     candidates_b[j],
@@ -86,7 +87,7 @@ pub fn find_initial(
 
         let mut best_potential = f32::INFINITY;
         let mut best = 0;
-        for (i, potential) in potentials.iter().copied().enumerate().take(N_CANDIDATES) {
+        for (i, potential) in potentials.iter().copied().enumerate().take(N_C) {
             if potential < best_potential {
                 best_potential = potential;
                 best = i;

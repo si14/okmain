@@ -1,12 +1,8 @@
-use super::MAX_CENTROIDS;
+use super::{LLOYDS_CONVERGENCE_TOLERANCE, LLOYDS_MAX_ITERATIONS, MAX_CENTROIDS};
 use crate::kmeans::plus_plus_init::find_initial;
 use crate::sample::SampledOklabSoA;
-use crate::types::Oklab;
+use oklab::Oklab;
 use rand::RngExt;
-
-// sklearn KMeans defaults
-const MAX_ITERATIONS: usize = 300;
-const CONVERGENCE_TOLERANCE: f32 = 1e-4;
 
 #[derive(Debug, Copy, Clone)]
 pub struct CentroidSoA {
@@ -16,7 +12,7 @@ pub struct CentroidSoA {
 }
 
 #[inline(always)]
-pub fn squared_distance(c_l: f32, c_a: f32, c_b: f32, l: f32, a: f32, b: f32) -> f32 {
+pub(crate) fn squared_distance_flat(c_l: f32, c_a: f32, c_b: f32, l: f32, a: f32, b: f32) -> f32 {
     let dl = c_l - l;
     let da = c_a - a;
     let db = c_b - b;
@@ -30,7 +26,7 @@ pub fn assign_points(sample: &SampledOklabSoA, centroids: &CentroidSoA, assignme
         let mut min = f32::MAX;
         let mut min_idx = 0;
         for j in 0..MAX_CENTROIDS {
-            let d = squared_distance(
+            let d = squared_distance_flat(
                 centroids.l[j],
                 centroids.a[j],
                 centroids.b[j],
@@ -141,7 +137,7 @@ pub fn lloyds_loop(
         assert_eq!(centroids.b[i], f32::MAX);
     }
 
-    for i in 0..MAX_ITERATIONS {
+    for i in 0..LLOYDS_MAX_ITERATIONS {
         assign_points(sample, centroids, assignments);
         let update_result = update_centroids(sample, k, assignments, centroids);
 
@@ -155,7 +151,7 @@ pub fn lloyds_loop(
             }
         }
 
-        if update_result.shift_squared < CONVERGENCE_TOLERANCE {
+        if update_result.shift_squared < LLOYDS_CONVERGENCE_TOLERANCE {
             return LloydsLoopResult {
                 loop_iterations: i + 1,
                 converged: true,
@@ -164,7 +160,7 @@ pub fn lloyds_loop(
     }
 
     LloydsLoopResult {
-        loop_iterations: MAX_ITERATIONS,
+        loop_iterations: LLOYDS_MAX_ITERATIONS,
         converged: false,
     }
 }

@@ -1,5 +1,3 @@
-use crate::types::Oklab;
-
 pub mod adaptive;
 pub mod lloyds;
 pub mod plus_plus_init;
@@ -19,8 +17,10 @@ pub mod plus_plus_init;
 pub const MAX_CENTROIDS: usize = 4;
 pub const ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED: f32 = 0.005;
 
-#[derive(Debug)]
-pub struct Centroids {
-    pub centroids: Vec<Oklab>,
-    pub assignments: Vec<usize>,
-}
+// sklearn KMeans defaults + inspired by testing
+const LLOYDS_MAX_ITERATIONS: usize = 300;
+
+const LLOYDS_CONVERGENCE_TOLERANCE: f32 = 1e-3;
+
+// Scikit uses (2+log(k)), which is 3 or 4 for k=1..4, we can settle on 3
+const GREEDY_INIT_N_CANDIDATES: usize = 3;

@@ -12,36 +12,42 @@ fast-srgb8 = { version = "1" }
 rand = { version = "0.10.0", default-features = false }
 rand_xoshiro = { version = "0.8" }
 image = { version = "0.25", optional = true, default-features = false }
-
+rgb = { version = "0.8" }
 
 [dev-dependencies]
 pretty_assertions = { version = "1", features = ["unstable"] }
 criterion = { version = "0.8", features = ["html_reports"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 
 [features]
 default = []
 image = ["dep:image"]
-_debug = ["image", "image/png", "image/jpeg"]
-_bench = []
+unstable = []
+# opens up private modules for debug binaries and benchmarks
+_debug = []
+
+[package.metadata.docs.rs]
+# Not `all-features` because `_debug` is internal
+features = ["image", "unstable"]
 
 [[bin]]
 name = "debug_sample"
-required-features = ["_debug"]
+required-features = ["image", "_debug"]
 
 [[bin]]
 name = "debug_centroids"
-required-features = ["_debug"]
+required-features = ["image", "_debug"]
 
 [[bin]]
 name = "debug_colors"
-required-features = ["_debug"]
+required-features = ["image", "_debug"]
 
 [[bench]]
 name = "kmeans"
 harness = false
-required-features = ["_bench"]
+required-features = ["image", "_debug"]
 
 [[bench]]
 name = "sample"
 harness = false
-required-features = ["_bench"]
+required-features = ["image", "_debug"]

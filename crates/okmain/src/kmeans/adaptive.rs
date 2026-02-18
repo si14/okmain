@@ -1,13 +1,20 @@
 use super::{lloyds, ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED, MAX_CENTROIDS};
 use crate::sample::SampledOklabSoA;
-use crate::types::Oklab;
+use oklab::Oklab;
 use rand::RngExt;
+
+fn squared_distance(x: Oklab, y: Oklab) -> f32 {
+    let dl = x.l - y.l;
+    let da = x.a - y.a;
+    let db = x.b - y.b;
+    dl.mul_add(dl, da.mul_add(da, db * db))
+}
 
 fn count_similar_clusters(centroids: &[Oklab]) -> usize {
     let mut count = 0;
     for i in 0..centroids.len() {
         for j in (i + 1)..centroids.len() {
-            if centroids[i].squared_distance(centroids[j]) < ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED
+            if squared_distance(centroids[i], centroids[j]) < ADAPTIVE_MIN_CENTROID_DISTANCE_SQUARED
             {
                 count += 1;
             }
@@ -16,6 +23,7 @@ fn count_similar_clusters(centroids: &[Oklab]) -> usize {
     count
 }
 
+#[derive(Debug)]
 pub struct Result {
     pub centroids: Vec<Oklab>,
     pub assignments: Vec<usize>,
@@ -50,7 +58,6 @@ pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::Oklab;
 
     #[test]
     fn no_similar_well_separated() {
@@ -141,7 +148,7 @@ mod tests {
             b: 6.0,
         };
         // (3^2 + 3^2 + 3^2) = 27
-        let d = a.squared_distance(b);
+        let d = squared_distance(a, b);
         assert!((d - 27.0).abs() < 1e-6);
     }
 }
