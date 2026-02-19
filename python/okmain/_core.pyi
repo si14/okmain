@@ -27,15 +27,6 @@ class _DebugInfo:
     @property
     def kmeans_converged(self) -> list[bool]: ...
 
-def _colors(
-    buf: bytes,
-    width: int,
-    height: int,
-    mask_saturated_threshold: float,
-    mask_weight: float,
-    mask_weighted_counts_weight: float,
-    chroma_weight: float,
-) -> list[tuple[int, int, int]]: ...
 def _colors_debug(
     buf: bytes,
     width: int,

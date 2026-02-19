@@ -47,31 +47,6 @@ fn parse_dimensions(width: u32, height: u32) -> PyResult<(u16, u16)> {
     Ok((w, h))
 }
 
-#[pyfunction]
-#[pyo3(name = "_colors")]
-fn py_colors(
-    buf: &[u8],
-    width: u32,
-    height: u32,
-    mask_saturated_threshold: f32,
-    mask_weight: f32,
-    mask_weighted_counts_weight: f32,
-    chroma_weight: f32,
-) -> PyResult<Vec<(u8, u8, u8)>> {
-    let (w, h) = parse_dimensions(width, height)?;
-    let input = okmain::InputImage::from_bytes(w, h, buf)
-        .map_err(|e| PyValueError::new_err(e.to_string()))?;
-    let colors = okmain::colors_with_config(
-        input,
-        mask_saturated_threshold,
-        mask_weight,
-        mask_weighted_counts_weight,
-        chroma_weight,
-    )
-    .map_err(|e| PyValueError::new_err(e.to_string()))?;
-    Ok(colors.into_iter().map(|c| (c.r, c.g, c.b)).collect())
-}
-
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 #[pyfunction]
 #[pyo3(name = "_colors_debug")]
@@ -134,7 +109,6 @@ fn py_colors_debug(
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyScoredCentroid>()?;
     m.add_class::<PyDebugInfo>()?;
-    m.add_function(wrap_pyfunction!(py_colors, m)?)?;
     m.add_function(wrap_pyfunction!(py_colors_debug, m)?)?;
     m.add(
         "DEFAULT_MASK_SATURATED_THRESHOLD",
