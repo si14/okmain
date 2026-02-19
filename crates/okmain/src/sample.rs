@@ -38,8 +38,8 @@ pub fn block_size(width: u16, height: u16) -> usize {
     if total <= MAX_SAMPLE_SIZE {
         return 1;
     }
-    let n = ((total as f64 / MAX_SAMPLE_SIZE as f64).sqrt()).ceil() as usize;
-    // Round up to next multiple of 4
+    let n = (total as f64 / MAX_SAMPLE_SIZE as f64).sqrt().ceil() as usize;
+    // Round up to the next multiple of 4
     (n + 3) & !3
 }
 

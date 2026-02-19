@@ -1,10 +1,9 @@
 test-rust:
     cargo nextest run --workspace
     cargo nextest run -p okmain --features image
+    cargo nextest run -p okmain --features image,unstable
     cargo test --doc --workspace
     cargo test --doc -p okmain --features image
-
-# TODO: what is this generated nonsense
 
 # Build the Python extension in dev mode
 develop:

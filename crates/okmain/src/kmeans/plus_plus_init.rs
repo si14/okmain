@@ -1,5 +1,5 @@
-use crate::kmeans::lloyds::squared_distance_flat;
 use crate::kmeans::GREEDY_INIT_N_CANDIDATES;
+use crate::kmeans::lloyds::squared_distance_flat;
 use crate::sample::SampledOklabSoA;
 use rand::RngExt;
 use std::array;

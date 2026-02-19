@@ -1,6 +1,6 @@
 use clap::Parser;
 use image::RgbImage;
-use okmain::debug_helpers::{ensure_out_dir, find_jpg_files, load_rgb8, FolderArgs};
+use okmain::debug_helpers::{FolderArgs, ensure_out_dir, find_jpg_files, load_rgb8};
 use okmain::sample;
 use std::time::Instant;
 

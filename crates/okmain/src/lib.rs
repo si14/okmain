@@ -2,6 +2,8 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(feature = "_debug")]
+pub mod debug_helpers;
+#[cfg(feature = "_debug")]
 pub mod kmeans;
 #[cfg(not(feature = "_debug"))]
 mod kmeans;
@@ -13,8 +15,6 @@ mod rng;
 pub mod sample;
 #[cfg(not(feature = "_debug"))]
 mod sample;
-#[cfg(feature = "_debug")]
-pub mod debug_helpers;
 
 use oklab::{oklab_to_srgb, Oklab};
 pub use rgb;
@@ -49,9 +49,14 @@ pub const DEFAULT_WEIGHTED_COUNTS_WEIGHT: f32 = 0.3;
 /// See [`colors_with_config`] for details.
 pub const DEFAULT_CHROMA_WEIGHT: f32 = 0.7;
 
-// todo: verify
 #[inline(always)]
 fn distance_mask_impl(saturated_threshold: f32, width: u16, height: u16, x: u16, y: u16) -> f32 {
+    assert!(saturated_threshold < 0.5);
+    assert!(width > 0);
+    assert!(height > 0);
+    assert!(x < width);
+    assert!(y < height);
+
     let width = width as f32;
     let height = height as f32;
     let x = x as f32;
@@ -64,13 +69,18 @@ fn distance_mask_impl(saturated_threshold: f32, width: u16, height: u16, x: u16,
     let middle_y = height / 2.0;
     let y = if y <= middle_y { y } else { height - y };
 
-    let x_threshold = middle_x * saturated_threshold;
-    let y_threshold = middle_y * saturated_threshold;
+    let x_threshold = width * saturated_threshold;
+    let y_threshold = height * saturated_threshold;
 
     let x_contribution = f32::min(0.1 + 0.9 * (x / x_threshold), 1.0);
     let y_contribution = f32::min(0.1 + 0.9 * (y / y_threshold), 1.0);
 
-    f32::min(x_contribution, y_contribution)
+    let result = f32::min(x_contribution, y_contribution);
+
+    assert!(result >= 0.0);
+    assert!(result <= 1.0);
+
+    result
 }
 
 #[cfg(feature = "_debug")]
@@ -523,9 +533,8 @@ fn colors_internal(
 
             let mask_weighted_counts = weighted_counts[i];
             let mask_weighted_counts_score = mask_weighted_counts * mask_weighted_counts_weight;
-            // todo: try to normalise/stretch the chromas
-            // Chroma goes up to 0.5 in practice
-            let chroma = (oklab.a * oklab.a + oklab.b * oklab.b).sqrt() * 2f32;
+            // Chroma goes up to 0.32249... in sRGB (verified by exhaustive search)
+            let chroma = oklab.a.mul_add(oklab.a, oklab.b * oklab.b).sqrt() / 0.32;
             let chroma_score = chroma * chroma_weight;
             let final_score =
                 mask_weighted_counts_weight * weighted_counts[i] + chroma_weight * chroma;
@@ -640,22 +649,22 @@ mod tests {
     #[test]
     fn distance_weight_center() {
         // Center of a 100x100 image
-        let w = distance_mask(0.3, 50, 50, 101, 101);
+        let w = distance_mask(0.3, 101, 101, 50, 50);
         assert!((w - 1.0).abs() < 1e-6);
     }
 
     #[test]
     fn distance_weight_corner() {
-        // Corner of image → d=1.0 → weight = 0.01
-        let w = distance_mask(0.3, 0, 0, 100, 100);
-        assert!((w - 0.01).abs() < 1e-6);
+        // Corner of image → weight = 0.1
+        let w = distance_mask(0.3, 100, 100, 0, 0);
+        assert!((w - 0.1).abs() < 1e-6);
     }
 
     #[test]
     fn distance_weight_1x1() {
-        // Single pixel → normalized to center → weight 1.0
-        let w = distance_mask(0.3, 0, 0, 1, 1);
-        assert!((w - 1.0).abs() < 1e-6);
+        // Single pixel -> it's a "corner" -> 0.1
+        let w = distance_mask(0.3, 1, 1, 0, 0);
+        assert!((w - 0.1).abs() < 1e-6);
     }
 
     #[cfg(feature = "image")]
