@@ -1,38 +1,25 @@
+use clap::Parser;
 use image::RgbImage;
+use okmain::debug_helpers::{ensure_out_dir, find_jpg_files, load_rgb8, FolderArgs};
 use okmain::{kmeans, rng, sample};
-use std::path::PathBuf;
 use std::time::Instant;
 
+#[derive(Parser)]
+struct Args {
+    #[command(flatten)]
+    folder: FolderArgs,
+}
+
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 || args.len() > 3 {
-        eprintln!("usage: {} <folder> [k]", args[0]);
-        std::process::exit(1);
-    }
-    let folder = PathBuf::from(&args[1]);
-    let _k: usize = args
-        .get(2)
-        .map_or(4, |s| s.parse().expect("k must be a number"));
-
-    let mut files: Vec<PathBuf> = std::fs::read_dir(&folder)
-        .unwrap()
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| {
-            p.extension()
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("jpg"))
-        })
-        .collect();
-    files.sort();
-
-    let out_dir = folder.join("debug_results/centroids");
-    std::fs::create_dir_all(&out_dir).unwrap();
+    let args = Args::parse();
+    let files = find_jpg_files(&args.folder.folder);
+    let out_dir = ensure_out_dir(&args.folder.folder, "centroids");
 
     for path in &files {
         let filename = path.file_name().unwrap();
 
         let t = Instant::now();
-        let img = image::open(path).unwrap().to_rgb8();
+        let img = load_rgb8(path);
         let (w, h) = (img.width() as u16, img.height() as u16);
         let sample = sample::sample(w, h, img.as_raw());
 

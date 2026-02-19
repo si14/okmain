@@ -12,6 +12,7 @@ fast-srgb8 = { version = "1" }
 rand = { version = "0.10.0", default-features = false }
 rand_xoshiro = { version = "0.8" }
 image = { version = "0.25", optional = true, default-features = false }
+clap = { version = "4", features = ["derive"], optional = true }
 rgb = { version = "0.8" }
 
 [dev-dependencies]
@@ -24,7 +25,7 @@ default = []
 image = ["dep:image"]
 unstable = []
 # opens up private modules for debug binaries and benchmarks
-_debug = []
+_debug = ["dep:clap", "image/png", "image/jpeg"]
 
 [package.metadata.docs.rs]
 # Not `all-features` because `_debug` is internal
@@ -40,6 +41,10 @@ required-features = ["image", "_debug"]
 
 [[bin]]
 name = "debug_colors"
+required-features = ["image", "_debug"]
+
+[[bin]]
+name = "debug_distance_mask"
 required-features = ["image", "_debug"]
 
 [[bench]]
