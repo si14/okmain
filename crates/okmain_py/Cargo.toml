@@ -11,5 +11,5 @@ name = "_core"
 crate-type = ["cdylib"]
 
 [dependencies]
-okmain = { path = "../okmain" }
+okmain = { path = "../okmain", features = ["unstable"] }
 pyo3 = { version = "0.28", features = ["abi3-py312"] }
