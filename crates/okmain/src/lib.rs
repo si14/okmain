@@ -13,6 +13,8 @@ mod rng;
 pub mod sample;
 #[cfg(not(feature = "_debug"))]
 mod sample;
+#[cfg(feature = "_debug")]
+pub mod debug_helpers;
 
 use oklab::{oklab_to_srgb, Oklab};
 pub use rgb;
@@ -48,8 +50,8 @@ pub const DEFAULT_WEIGHTED_COUNTS_WEIGHT: f32 = 0.3;
 pub const DEFAULT_CHROMA_WEIGHT: f32 = 0.7;
 
 // todo: verify
-#[inline]
-fn distance_mask(saturated_threshold: f32, width: u16, height: u16, x: u16, y: u16) -> f32 {
+#[inline(always)]
+fn distance_mask_impl(saturated_threshold: f32, width: u16, height: u16, x: u16, y: u16) -> f32 {
     let width = width as f32;
     let height = height as f32;
     let x = x as f32;
@@ -69,6 +71,18 @@ fn distance_mask(saturated_threshold: f32, width: u16, height: u16, x: u16, y: u
     let y_contribution = f32::min(0.1 + 0.9 * (y / y_threshold), 1.0);
 
     f32::min(x_contribution, y_contribution)
+}
+
+#[cfg(feature = "_debug")]
+#[inline]
+pub fn distance_mask(saturated_threshold: f32, width: u16, height: u16, x: u16, y: u16) -> f32 {
+    distance_mask_impl(saturated_threshold, width, height, x, y)
+}
+
+#[cfg(not(feature = "_debug"))]
+#[inline]
+fn distance_mask(saturated_threshold: f32, width: u16, height: u16, x: u16, y: u16) -> f32 {
+    distance_mask_impl(saturated_threshold, width, height, x, y)
 }
 
 /// Errors that can occur when constructing an [`InputImage`].
