@@ -25,6 +25,7 @@ use std::ops::Deref;
 #[cfg(feature = "image")]
 pub use image;
 
+/// Workaround: snafu's `display` attribute macro doesn't support path expressions like `u16::MAX`.
 const U16_MAX: u16 = u16::MAX;
 
 /// Default saturation threshold for the mask. Pixels within the central rectangle defined by
@@ -49,7 +50,7 @@ pub const DEFAULT_WEIGHTED_COUNTS_WEIGHT: f32 = 0.3;
 /// See [`colors_with_config`] for details.
 pub const DEFAULT_CHROMA_WEIGHT: f32 = 0.7;
 
-#[inline(always)]
+#[inline]
 fn distance_mask_impl(saturated_threshold: f32, width: u16, height: u16, x: u16, y: u16) -> f32 {
     assert!(saturated_threshold < 0.5);
     assert!(width > 0);
@@ -346,6 +347,9 @@ pub fn colors_with_config(
     .map(|(colors, _)| colors)
 }
 
+/// Maximum Oklab chroma achievable in the sRGB gamut (verified by exhaustive search).
+const MAX_SRGB_OKLAB_CHROMA: f32 = 0.32;
+
 /// Debug details about every "centroid" in the Oklab color space and its score.
 /// Available only if the `unstable` feature is enabled.
 #[cfg(feature = "unstable")]
@@ -479,7 +483,7 @@ fn colors_internal(
         }
     );
     ensure!(
-        mask_weighted_counts_weight + chroma_weight == 1.0,
+        (mask_weighted_counts_weight + chroma_weight - 1.0).abs() < 1e-6,
         WeightsDontAddUpSnafu {
             mask_weighted_counts_weight,
             chroma_weight,
@@ -534,10 +538,9 @@ fn colors_internal(
             let mask_weighted_counts = weighted_counts[i];
             let mask_weighted_counts_score = mask_weighted_counts * mask_weighted_counts_weight;
             // Chroma goes up to 0.32249... in sRGB (verified by exhaustive search)
-            let chroma = oklab.a.mul_add(oklab.a, oklab.b * oklab.b).sqrt() / 0.32;
+            let chroma = oklab.a.mul_add(oklab.a, oklab.b * oklab.b).sqrt() / MAX_SRGB_OKLAB_CHROMA;
             let chroma_score = chroma * chroma_weight;
-            let final_score =
-                mask_weighted_counts_weight * weighted_counts[i] + chroma_weight * chroma;
+            let final_score = mask_weighted_counts_score + chroma_score;
             ScoredCentroid {
                 oklab,
                 rgb,
