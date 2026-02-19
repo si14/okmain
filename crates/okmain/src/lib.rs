@@ -44,7 +44,7 @@ pub const DEFAULT_WEIGHTED_COUNTS_WEIGHT: f32 = 0.3;
 
 /// Default weight of the chroma component of the color.
 /// The more saturated the color is, the more prominent it is. This is more true in Oklab,
-/// in Oklab, since it accounts, to an extent, for low luminance affecting perceived saturation.
+/// since it accounts, to an extent, for low luminance affecting perceived saturation.
 /// The more prominent the color is, the more likely it is to be the dominant color.
 /// See [`colors_with_config`] for details.
 pub const DEFAULT_CHROMA_WEIGHT: f32 = 0.7;
