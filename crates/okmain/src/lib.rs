@@ -16,7 +16,7 @@ pub mod sample;
 #[cfg(not(feature = "_debug"))]
 mod sample;
 
-use oklab::{oklab_to_srgb, Oklab};
+use oklab::{Oklab, oklab_to_srgb};
 pub use rgb;
 use snafu::prelude::*;
 #[cfg(feature = "image")]
