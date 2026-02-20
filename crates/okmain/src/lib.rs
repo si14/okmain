@@ -1,4 +1,4 @@
-#![doc = include_str!("lib.md")]
+#![doc = include_str!("../README.md")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 #[cfg(feature = "_debug")]
@@ -16,7 +16,7 @@ pub mod sample;
 #[cfg(not(feature = "_debug"))]
 mod sample;
 
-use oklab::{Oklab, oklab_to_srgb};
+use oklab::{oklab_to_srgb, Oklab};
 pub use rgb;
 use snafu::prelude::*;
 #[cfg(feature = "image")]
