@@ -1,3 +1,9 @@
+"""`okmain` finds the main colors of an image and makes sure they look good.
+
+Color operations in a state-of-the-art perceptually linear color space (Oklab),
+with position- and visual prominence-based color prioritization.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -30,6 +36,8 @@ __all__ = [
 
 @dataclass(frozen=True, slots=True)
 class RGB:
+    """An sRGB color with red, green, and blue components in the [0, 255] range."""
+
     r: int
     g: int
     b: int
@@ -37,6 +45,8 @@ class RGB:
 
 @dataclass(frozen=True, slots=True)
 class Oklab:
+    """A color in the Oklab perceptually uniform color space."""
+
     l: float  # noqa: E741
     a: float
     b: float
@@ -44,6 +54,20 @@ class Oklab:
 
 @dataclass(frozen=True, slots=True)
 class ScoredCentroid:
+    """Debug details about a centroid in the Oklab color space and its score.
+
+    Attributes:
+        rgb: sRGB color of the centroid.
+        oklab: Oklab color of the centroid.
+        mask_weighted_counts: The fraction of pixels assigned to this centroid, with a mask
+            reducing the impact of peripheral pixels applied.
+        mask_weighted_counts_score: The score of the centroid based on mask-weighted pixel counts.
+        chroma: Centroid's Oklab chroma (calculated from the Oklab value and normalized to [0, 1]).
+        chroma_score: The score of the centroid based on chroma.
+        final_score: The final score of the centroid, combining two scores based on provided
+            weights.
+    """
+
     rgb: RGB
     oklab: Oklab
     mask_weighted_counts: float
@@ -69,6 +93,18 @@ class ScoredCentroid:
 
 @dataclass(frozen=True, slots=True)
 class DebugInfo:
+    """Debug info returned by ``colors()`` when called with ``with_debug=True``.
+
+    Attributes:
+        scored_centroids: The Okmain algorithm looks for k-means centroids in the Oklab color
+            space. This field contains details about the centroids that were found in the image.
+        kmeans_loop_iterations: The number of iterations the k-means algorithm took until the
+            position of centroids stopped changing. A list, because Okmain can re-run k-means
+            with a lower number of centroids if some of the discovered centroids are too close.
+        kmeans_converged: Did k-means search converge? If not, it was cut off by the maximum
+            number of iterations. A list for the same reason ``kmeans_loop_iterations`` is.
+    """
+
     scored_centroids: list[ScoredCentroid]
     kmeans_loop_iterations: list[int]
     kmeans_converged: list[bool]
@@ -115,6 +151,49 @@ def colors(
     chroma_weight: float = DEFAULT_CHROMA_WEIGHT,
     with_debug: bool = False,
 ) -> list[RGB] | tuple[list[RGB], DebugInfo]:
+    """Extract dominant colors from a PIL image.
+
+    The image must be in RGB mode; other modes (e.g. RGBA) raise ``ValueError``.
+
+    Returns up to four dominant colors as :class:`RGB` values, sorted by dominance
+    (the most dominant color first). If some colors are too close, fewer colors
+    might be returned.
+
+    Pass ``with_debug=True`` to also receive a :class:`DebugInfo` with internal
+    algorithm details.
+
+    Args:
+        image: A PIL image in RGB mode.
+        mask_saturated_threshold: The algorithm uses a mask to prioritize central pixels while
+            considering the relative color dominance. The mask is a 1.0-weight rectangle starting
+            at ``mask_saturated_threshold * 100%`` and finishing at
+            ``(1.0 - mask_saturated_threshold) * 100%`` on both axes, with linear weight falloff
+            from 1.0 at the border of the rectangle to 0.1 at the border of the image.
+            Must be in the ``[0.0, 0.5)`` range.
+        mask_weight: The weight of the mask, which can be used to reduce the impact of the mask
+            on less-central pixels. By default it's set to 1.0, but by reducing this number you
+            can increase the relative contribution of peripheral pixels.
+            Must be in the ``[0.0, 1.0]`` range.
+        mask_weighted_counts_weight: After the number of pixels belonging to every color is added
+            up (with the mask reducing the contribution of peripheral pixels), the sums are
+            normalized to add up to 1.0, and used as a part of the final score that decides the
+            ordering of the colors. This parameter sets the relative weight of this component in
+            the final score. Must be in the ``[0.0, 1.0]`` range and add up to 1.0 together with
+            ``chroma_weight``.
+        chroma_weight: For each color its saturation (Oklab chroma) is used to prioritize colors
+            that are visually more prominent. This parameter controls the relative contribution
+            of chroma into the final score. Must be in the ``[0.0, 1.0]`` range and add up to
+            1.0 together with ``mask_weighted_counts_weight``.
+        with_debug: If ``True``, return a ``(colors, debug_info)`` tuple instead of just the
+            color list.
+
+    Returns:
+        A list of :class:`RGB` colors sorted by dominance, or a tuple of that list and a
+        :class:`DebugInfo` if ``with_debug=True``.
+
+    Raises:
+        ValueError: If the image mode is not RGB, or if any config parameter is out of range.
+    """
     if image.mode != "RGB":
         raise ValueError(f"expected RGB image, got {image.mode!r}")
     buf = image.tobytes()
