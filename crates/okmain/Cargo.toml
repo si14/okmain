@@ -4,6 +4,13 @@ version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
+description = "OK main colors of your image"
+homepage = "https://github.com/si14/okmain"
+repository = "https://github.com/si14/okmain/tree/main/crates/okmain"
+readme = "README.md"
+keywords = ["color", "image", "oklab", "palette"]
+categories = ["multimedia::images"]
+exclude = ["src/bin/*", "benches/*", "AGENTS.md"]
 
 [dependencies]
 snafu = { workspace = true }
@@ -24,7 +31,7 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg"]
 default = []
 image = ["dep:image"]
 unstable = []
-# opens up private modules for debug binaries and benchmarks
+# Opens up private modules for debug binaries and benchmarks
 _debug = ["dep:clap", "image/png", "image/jpeg"]
 
 [package.metadata.docs.rs]

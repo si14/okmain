@@ -53,7 +53,6 @@ pub struct UpdateResult {
 #[inline]
 pub fn update_centroids(
     sample: &SampledOklabSoA,
-    _k: usize,
     assignments: &[u8],
     centroids: &mut CentroidSoA,
 ) -> UpdateResult {
@@ -139,7 +138,7 @@ pub fn lloyds_loop(
 
     for i in 0..LLOYDS_MAX_ITERATIONS {
         assign_points(sample, centroids, assignments);
-        let update_result = update_centroids(sample, k, assignments, centroids);
+        let update_result = update_centroids(sample, assignments, centroids);
 
         // Empty cluster reassignment (but only when it's not a dummy one)
         for (i, count) in update_result.counts.iter().copied().take(k).enumerate() {
@@ -165,14 +164,14 @@ pub fn lloyds_loop(
     }
 }
 
-pub struct Result {
+pub struct LloydsResult {
     pub centroids: Vec<Oklab>,
     pub assignments: Vec<usize>,
     pub loop_iterations: usize,
     pub converged: bool,
 }
 
-pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize) -> Result {
+pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize) -> LloydsResult {
     let n = sample.l.len();
     let k = k.min(n);
 
@@ -203,7 +202,7 @@ pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA, k: usize)
         })
         .collect();
 
-    Result {
+    LloydsResult {
         centroids: centroids_vec,
         assignments: assignments.iter().map(|&a| a as usize).collect(),
         loop_iterations: iterations,
@@ -319,7 +318,7 @@ mod tests {
             centroids.b[i] = 99.0;
         }
 
-        let result = update_centroids(&soa, k, &truth, &mut centroids);
+        let result = update_centroids(&soa, &truth, &mut centroids);
 
         // Each centroid should be near its cluster's true center (tolerance 1.0 for noise)
         for (i, &(cl, ca, cb)) in CENTERS.iter().enumerate() {

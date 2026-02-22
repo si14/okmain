@@ -9,7 +9,11 @@ requires-python = "==3.12.*"
 dependencies = ["Pillow"]
 
 [dependency-groups]
-dev = ["pytest", "mypy", "ruff"]
+dev = [
+    "pytest",
+    "mypy",
+    "ruff",
+]
 
 [tool.maturin]
 manifest-path = "../crates/okmain_py/Cargo.toml"

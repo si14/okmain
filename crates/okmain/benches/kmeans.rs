@@ -48,7 +48,7 @@ fn bench(c: &mut Criterion) {
     c.bench_function("kmeans/update_centroids", |b| {
         b.iter(|| {
             let mut centroids_copy = centroids;
-            lloyds::update_centroids(&sample, k, &assignments, &mut centroids_copy)
+            lloyds::update_centroids(&sample, &assignments, &mut centroids_copy)
         })
     });
 

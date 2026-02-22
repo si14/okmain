@@ -28,7 +28,6 @@ impl SampledOklabSoA {
     }
 }
 
-// TODO: review/simplify/analyse
 // Compute the block size N for block averaging.
 //
 // - If total pixels <= MAX_SAMPLE_SIZE, returns 1 (no averaging).

@@ -297,10 +297,14 @@ pub enum ConfigError {
     #[snafu(display("invalid chroma_weight: {weight} (must be in [0, 1])"))]
     InvalidChromaWeight { weight: f32 },
     /// `mask_weighted_counts_weight` and `chroma_weight` don't add up to 1.0
-    #[snafu(display("mask_weighted_counts_weight and chroma_weight don't add up to 1.0"))]
+    #[snafu(display(
+        "mask_weighted_counts_weight ({mask_weighted_counts_weight}) \
+        and chroma_weight ({chroma_weight}) don't add up to 1.0 (sum: {weight_sum})"
+    ))]
     WeightsDontAddUp {
         mask_weighted_counts_weight: f32,
         chroma_weight: f32,
+        weight_sum: f32,
     },
 }
 
@@ -482,11 +486,15 @@ fn colors_internal(
             weight: chroma_weight
         }
     );
+    let weight_sum = mask_weighted_counts_weight + chroma_weight;
     ensure!(
-        (mask_weighted_counts_weight + chroma_weight - 1.0).abs() < 1e-6,
+        // Slightly higher tolerance here to avoid floating point bollocks, I don't
+        // REALLY rely on the sum being 1.0
+        (weight_sum - 1.0).abs() < 1e-5,
         WeightsDontAddUpSnafu {
             mask_weighted_counts_weight,
             chroma_weight,
+            weight_sum
         }
     );
 

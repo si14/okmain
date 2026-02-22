@@ -24,14 +24,14 @@ fn count_similar_clusters(centroids: &[Oklab]) -> usize {
 }
 
 #[derive(Debug)]
-pub struct Result {
+pub struct AdaptiveResult {
     pub centroids: Vec<Oklab>,
     pub assignments: Vec<usize>,
     pub loop_iterations: Vec<usize>,
     pub converged: Vec<bool>,
 }
 
-pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA) -> Result {
+pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA) -> AdaptiveResult {
     let mut k = MAX_CENTROIDS;
     let mut loop_iterations = Vec::with_capacity(MAX_CENTROIDS);
     let mut converged = Vec::with_capacity(MAX_CENTROIDS);
@@ -44,7 +44,7 @@ pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA) -> Result
 
         let similar_count = count_similar_clusters(&result.centroids);
         if similar_count == 0 || k <= 1 {
-            break Result {
+            break AdaptiveResult {
                 centroids: result.centroids,
                 assignments: result.assignments,
                 loop_iterations,
