@@ -24,7 +24,7 @@ Technical highlights:
 - Fast custom K-means color clustering, optimized for auto-vectorization (confirmed with disassembly)
 - Position- and visual prominence-based color prioritization (more central and higher Oklab chroma pixels tend to be
   more important)
-- Tunable parameters (see [`colors_with_config`])[README.md](../../README.md)
+- Tunable parameters (see [`colors_with_config`])
 - Minimal and stable dependencies
 - [Python wrapper](https://github.com/si14/okmain/tree/main/python)
 
