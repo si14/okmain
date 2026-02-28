@@ -5,6 +5,10 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 publish = false
+description = "OK main colors of your image (Rust-Python bridge)"
+homepage = "https://github.com/si14/okmain"
+repository = "https://github.com/si14/okmain/tree/main/crates/okmain_py"
+readme = "README.md"
 
 [lib]
 name = "_core"
