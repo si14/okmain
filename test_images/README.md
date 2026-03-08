@@ -12,5 +12,6 @@ https://www.metmuseum.org/art/collection/search/36069
 https://www.metmuseum.org/art/collection/search/36089
 https://commons.wikimedia.org/wiki/File:Luar_sobre_a_Ponta_da_Lagoinha.jpg
 https://en.wikipedia.org/wiki/File:Patrick_Henry_Bruce_Stilleben.jpg
+https://en.wikipedia.org/wiki/File:Pasture_in_Pennsylvania.jpg
 
 `IMG_*.jpeg` images by the repo's author (Dan Groshev)
