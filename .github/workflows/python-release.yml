@@ -11,6 +11,7 @@
 #   https://github.com/PyO3/maturin-action?tab=readme-ov-file#hardening-release-pipelines
 # - release tags must start with "py"
 # - pinned maturin and maturin-action versions
+# - trusted publishing per https://www.maturin.rs/distribution.html#using-pypis-trusted-publishing
 name: python-release
 
 on:
@@ -24,6 +25,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   run-lint-test:
@@ -164,5 +166,3 @@ jobs:
       - name: Publish to PyPI
         if: ${{ startsWith(github.ref, 'refs/tags/py') }}
         run: uv publish 'wheels-*/*'
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
