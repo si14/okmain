@@ -21,8 +21,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/si14/okmain"
-# TODO: docs!
-# Documentation = "https://readthedocs.org"
+Documentation = "https://okmain.dgroshev.com/py/"
 Repository = "https://github.com/si14/okmain"
 "Bug Tracker" = "https://github.com/si14/okmain/issues"
 
@@ -35,7 +34,8 @@ dev = [
     "pytest",
     "mypy",
     "ruff",
-    "twine"
+    "twine",
+    "pdoc",
 ]
 
 [tool.maturin]

@@ -21,8 +21,7 @@ on:
     # branches:
     #   - main
     tags:
-      - '*'
-  pull_request:
+      - 'py-*'
   workflow_dispatch:
 
 permissions:

@@ -2,6 +2,7 @@
 
 `okmain` finds the main colors of an image and makes sure they look good.
 
+[Docs](https://okmain.dgroshev.com/py/) •
 [PyPI Package](https://pypi.org/project/okmain/) •
 [GitHub](https://github.com/si14/okmain) •
 [Rust crate](https://crates.io/crates/okmain)
