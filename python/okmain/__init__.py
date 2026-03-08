@@ -1,9 +1,3 @@
-"""`okmain` finds the main colors of an image and makes sure they look good.
-
-Color operations in a state-of-the-art perceptually linear color space (Oklab),
-with position- and visual prominence-based color prioritization.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,10 +36,23 @@ class RGB:
     g: int
     b: int
 
+    """Convert the color into hex representation, e.g. FF0000 for pure red. 
+
+    Returns:
+        A string with the hex representation.
+    """
+
+    def to_hex(self) -> str:
+        assert 0 <= self.r <= 255
+        assert 0 <= self.g <= 255
+        assert 0 <= self.b <= 255
+
+        return "#{:02X}{:02X}{:02X}".format(self.r, self.g, self.b)
+
 
 @dataclass(frozen=True, slots=True)
 class Oklab:
-    """A color in the Oklab perceptually uniform color space."""
+    """A color in the Oklab perceptually linear color space."""
 
     l: float  # noqa: E741
     a: float
@@ -93,7 +100,9 @@ class ScoredCentroid:
 
 @dataclass(frozen=True, slots=True)
 class DebugInfo:
-    """Debug info returned by ``colors()`` when called with ``with_debug=True``.
+    """Debug info returned by ``colors()`` when called with ``with_debug_info=True``.
+    There are no stability guarantees for this class: it can be changed in a reverse-incompatible
+    way in a minor release.
 
     Attributes:
         scored_centroids: The Okmain algorithm looks for k-means centroids in the Oklab color
@@ -111,6 +120,7 @@ class DebugInfo:
 
     @classmethod
     def _from_core(cls, debug: _DebugInfo) -> Self:
+        # noinspection PyProtectedMember
         return cls(
             scored_centroids=[ScoredCentroid._from_core(sc) for sc in debug.scored_centroids],
             kmeans_loop_iterations=list(debug.kmeans_loop_iterations),
@@ -120,36 +130,36 @@ class DebugInfo:
 
 @overload
 def colors(
-    image: Image.Image,
-    *,
-    mask_saturated_threshold: float = ...,
-    mask_weight: float = ...,
-    mask_weighted_counts_weight: float = ...,
-    chroma_weight: float = ...,
-    with_debug: Literal[True],
+        image: Image.Image,
+        *,
+        mask_saturated_threshold: float = ...,
+        mask_weight: float = ...,
+        mask_weighted_counts_weight: float = ...,
+        chroma_weight: float = ...,
+        with_debug_info: Literal[True],
 ) -> tuple[list[RGB], DebugInfo]: ...
 
 
 @overload
 def colors(
-    image: Image.Image,
-    *,
-    mask_saturated_threshold: float = ...,
-    mask_weight: float = ...,
-    mask_weighted_counts_weight: float = ...,
-    chroma_weight: float = ...,
-    with_debug: Literal[False] = ...,
+        image: Image.Image,
+        *,
+        mask_saturated_threshold: float = ...,
+        mask_weight: float = ...,
+        mask_weighted_counts_weight: float = ...,
+        chroma_weight: float = ...,
+        with_debug_info: Literal[False] = ...,
 ) -> list[RGB]: ...
 
 
 def colors(
-    image: Image.Image,
-    *,
-    mask_saturated_threshold: float = DEFAULT_MASK_SATURATED_THRESHOLD,
-    mask_weight: float = DEFAULT_MASK_WEIGHT,
-    mask_weighted_counts_weight: float = DEFAULT_WEIGHTED_COUNTS_WEIGHT,
-    chroma_weight: float = DEFAULT_CHROMA_WEIGHT,
-    with_debug: bool = False,
+        image: Image.Image,
+        *,
+        mask_saturated_threshold: float = DEFAULT_MASK_SATURATED_THRESHOLD,
+        mask_weight: float = DEFAULT_MASK_WEIGHT,
+        mask_weighted_counts_weight: float = DEFAULT_WEIGHTED_COUNTS_WEIGHT,
+        chroma_weight: float = DEFAULT_CHROMA_WEIGHT,
+        with_debug_info: bool = False,
 ) -> list[RGB] | tuple[list[RGB], DebugInfo]:
     """Extract dominant colors from a PIL image.
 
@@ -159,11 +169,11 @@ def colors(
     (the most dominant color first). If some colors are too close, fewer colors
     might be returned.
 
-    Pass ``with_debug=True`` to also receive a :class:`DebugInfo` with internal
-    algorithm details.
+    Pass ``with_debug_info=True`` to also receive a :class:`DebugInfo` with internal
+    algorithm details. :class:`DebugInfo` is not guaranteed to remain stable in minor releases.
 
     Args:
-        image: A PIL image in RGB mode.
+        image: A PIL image in RGB mode. The color space is assumed to be sRGB.
         mask_saturated_threshold: The algorithm uses a mask to prioritize central pixels while
             considering the relative color dominance. The mask is a 1.0-weight rectangle starting
             at ``mask_saturated_threshold * 100%`` and finishing at
@@ -182,14 +192,14 @@ def colors(
             ``chroma_weight``.
         chroma_weight: For each color its saturation (Oklab chroma) is used to prioritize colors
             that are visually more prominent. This parameter controls the relative contribution
-            of chroma into the final score. Must be in the ``[0.0, 1.0]`` range and add up to
+            of chroma to the final score. Must be in the ``[0.0, 1.0]`` range and add up to
             1.0 together with ``mask_weighted_counts_weight``.
-        with_debug: If ``True``, return a ``(colors, debug_info)`` tuple instead of just the
+        with_debug_info: If ``True``, return a ``(colors, debug_info)`` tuple instead of just the
             color list.
 
     Returns:
         A list of :class:`RGB` colors sorted by dominance, or a tuple of that list and a
-        :class:`DebugInfo` if ``with_debug=True``.
+        :class:`DebugInfo` if ``with_debug_info=True``.
 
     Raises:
         ValueError: If the image mode is not RGB, or if any config parameter is out of range.
@@ -208,6 +218,7 @@ def colors(
         chroma_weight,
     )
     color_list = [RGB(*c) for c in raw_colors]
-    if with_debug:
+    if with_debug_info:
+        # noinspection PyProtectedMember
         return color_list, DebugInfo._from_core(raw_debug)
     return color_list

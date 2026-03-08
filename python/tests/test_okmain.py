@@ -31,9 +31,9 @@ def test_single_color_roundtrip() -> None:
     assert result[0].r > 200
 
 
-def test_with_debug_returns_tuple() -> None:
+def test_with_debug_info_returns_tuple() -> None:
     img = Image.new("RGB", (10, 10), (200, 100, 50))
-    result = okmain.colors(img, with_debug=True)
+    result = okmain.colors(img, with_debug_info=True)
     assert isinstance(result, tuple)
     color_list, debug = result
     assert isinstance(color_list, list)
@@ -75,3 +75,17 @@ def test_dominance_ordering() -> None:
     assert result[0].r > 200
     assert result[0].g < 50
     assert abs(result[1].r - result[1].g) < 30
+
+
+def test_to_hex() -> None:
+    red = okmain.RGB(r=255, g=0, b=0)
+    assert red.to_hex() == "#FF0000"
+
+    green = okmain.RGB(r=0, g=255, b=0)
+    assert green.to_hex() == "#00FF00"
+
+    blue = okmain.RGB(r=0, g=0, b=255)
+    assert blue.to_hex() == "#0000FF"
+
+    greenish = okmain.RGB(r=57, g=82, b=69)
+    assert greenish.to_hex() == "#395245"
