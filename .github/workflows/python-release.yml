@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   run-lint-test:
-    uses: ./.github/workflows/lint-test.yml@main
+    uses: ./.github/workflows/lint-test.yml
   
   linux:
     runs-on: ${{ matrix.platform.runner }}
