@@ -51,6 +51,11 @@ pub fn find_centroids(rng: &mut impl RngExt, sample: &SampledOklabSoA) -> Adapti
                 converged,
             };
         }
+        // There's a temptation to subtract the number of similar clusters here,
+        // potentially skipping over several steps. In my testing, it seems to make
+        // the results worse, because re-clustering with just one fewer centroid
+        // sometimes finds new distinct centroids. If we skip over a few steps,
+        // there is no chance to find those.
         k -= 1;
     }
 }
