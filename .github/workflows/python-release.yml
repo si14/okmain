@@ -13,6 +13,7 @@
 # - pinned maturin and maturin-action versions
 # - trusted publishing per https://www.maturin.rs/distribution.html#using-pypis-trusted-publishing
 # - don't build wheels on pushes to main to save a bit of compute
+# - remove sccache
 name: python-release
 
 on:
@@ -54,7 +55,6 @@ jobs:
           working-directory: python
           target: ${{ matrix.platform.target }}
           args: --release --locked --compatibility pypi --out dist
-          sccache: ${{ !startsWith(github.ref, 'refs/tags/py') }}
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v5
@@ -85,7 +85,6 @@ jobs:
           working-directory: python
           target: ${{ matrix.platform.target }}
           args: --release --locked --compatibility pypi --out dist
-          sccache: ${{ !startsWith(github.ref, 'refs/tags/py') }}
           manylinux: musllinux_1_2
       - name: Upload wheels
         uses: actions/upload-artifact@v5
@@ -116,7 +115,6 @@ jobs:
           working-directory: python
           target: ${{ matrix.platform.target }}
           args: --release --locked --compatibility pypi --out dist
-          sccache: ${{ !startsWith(github.ref, 'refs/tags/py') }}
       - name: Upload wheels
         uses: actions/upload-artifact@v5
         with:
