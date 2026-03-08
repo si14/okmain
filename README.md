@@ -38,4 +38,4 @@ Read more about Okmain in the [blog post](https://dgroshev.com/blog/okmain/).
 
 ## LLM disclosure
 
-LLMs are used extensively in the development of Okmain, but all generated code is reviewed and rewritten.
+LLMs are used extensively in the development of Okmain, but all generated code is reviewed and rewritten by a human.
