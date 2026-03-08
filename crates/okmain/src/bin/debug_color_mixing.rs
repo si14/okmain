@@ -57,9 +57,9 @@ fn draw_str(img: &mut RgbImage, text: &str, x0: u32, y0: u32, scale: u32, color:
     for (i, c) in text.chars().enumerate() {
         let g = glyph(c.to_ascii_uppercase());
         let cx = x0 + i as u32 * stride;
-        for row in 0..7usize {
+        for (row, g_row) in g.iter().enumerate() {
             for col in 0..5usize {
-                if (g[row] >> (7 - col)) & 1 != 0 {
+                if (g_row >> (7 - col)) & 1 != 0 {
                     for dy in 0..scale {
                         for dx in 0..scale {
                             let fx = cx + col as u32 * scale + dx;
