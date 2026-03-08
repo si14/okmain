@@ -58,6 +58,10 @@ required-features = ["image", "_debug"]
 name = "debug_distance_mask"
 required-features = ["image", "_debug"]
 
+[[bin]]
+name = "debug_color_mixing"
+required-features = ["image", "_debug"]
+
 [[bench]]
 name = "kmeans"
 harness = false
