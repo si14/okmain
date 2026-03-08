@@ -27,6 +27,26 @@ jobs:
       - run: uv sync --package okmain
       - run: uv run --package okmain pdoc -o docs/py python/okmain
 
+      - name: Add redirect from site root to the repo
+        run: |
+          cat > docs/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; url=https://github.com/si14/okmain/">
+              <link rel="canonical" href="https://github.com/si14/okmain/">
+              <title>Redirecting…</title>
+              <script>
+                window.location.replace("https://github.com/si14/okmain/");
+              </script>
+            </head>
+            <body>
+              <p>Redirecting to <a href="https://github.com/si14/okmain/">the repo</a>…</p>
+            </body>
+          </html>
+          HTML
+
       - uses: actions/upload-pages-artifact@v4
         with:
           path: docs/
