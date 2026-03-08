@@ -343,7 +343,7 @@ pub struct Config {
     /// Default value in [`DEFAULT_WEIGHTED_COUNTS_WEIGHT`].
     pub mask_weighted_counts_weight: f32,
     /// For each color its saturation (Oklab chroma) is used to prioritize colors that are
-    /// visually more prominent. This field controls the relative contribution of chroma into
+    /// visually more prominent. This field controls the relative contribution of chroma to
     /// the final score.
     ///
     /// Must be in the `[0.0, 1.0]` range and add up to 1.0 together with

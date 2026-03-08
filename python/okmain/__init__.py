@@ -36,13 +36,12 @@ class RGB:
     g: int
     b: int
 
-    """Convert the color into hex representation, e.g. FF0000 for pure red. 
-
-    Returns:
-        A string with the hex representation.
-    """
-
     def to_hex(self) -> str:
+        """Convert the color into hex representation, e.g. #FF0000 for pure red.
+
+        Returns:
+            A string with the hex representation.
+        """
         assert 0 <= self.r <= 255
         assert 0 <= self.g <= 255
         assert 0 <= self.b <= 255
@@ -190,7 +189,7 @@ def colors(
             ordering of the colors. This parameter sets the relative weight of this component in
             the final score. Must be in the ``[0.0, 1.0]`` range and add up to 1.0 together with
             ``chroma_weight``.
-        chroma_weight: For each color its saturation (Oklab chroma) is used to prioritize colors
+        chroma_weight: For each color, its saturation (Oklab chroma) is used to prioritize colors
             that are visually more prominent. This parameter controls the relative contribution
             of chroma to the final score. Must be in the ``[0.0, 1.0]`` range and add up to
             1.0 together with ``mask_weighted_counts_weight``.
