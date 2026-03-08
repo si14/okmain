@@ -12,12 +12,13 @@
 # - release tags must start with "py"
 # - pinned maturin and maturin-action versions
 # - trusted publishing per https://www.maturin.rs/distribution.html#using-pypis-trusted-publishing
+# - don't build wheels on pushes to main to save a bit of compute
 name: python-release
 
 on:
   push:
-    branches:
-      - main
+    # branches:
+    #   - main
     tags:
       - '*'
   pull_request:
