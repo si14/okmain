@@ -46,15 +46,15 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: 3.x
+          python-version: 3.12
       - name: Build wheels
         uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad  # v1.50.1
         with:
           maturin-version: "v1.12.6"
           working-directory: python
           target: ${{ matrix.platform.target }}
-          args: --release --locked --compatibility pypi --out dist
-          manylinux: auto
+          args: --release --locked --compatibility pypi --out dist --interpreter python3.12
+          manylinux: 2_28
       - name: Upload wheels
         uses: actions/upload-artifact@v5
         with:
@@ -76,14 +76,14 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: 3.x
+          python-version: 3.12
       - name: Build wheels
         uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad  # v1.50.1
         with:
           maturin-version: "v1.12.6"
           working-directory: python
           target: ${{ matrix.platform.target }}
-          args: --release --locked --compatibility pypi --out dist
+          args: --release --locked --compatibility pypi --out dist --interpreter python3.12
           manylinux: musllinux_1_2
       - name: Upload wheels
         uses: actions/upload-artifact@v5
@@ -106,14 +106,14 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: 3.x
+          python-version: 3.12
       - name: Build wheels
         uses: PyO3/maturin-action@04ac600d27cdf7a9a280dadf7147097c42b757ad  # v1.50.1
         with:
           maturin-version: "v1.12.6"
           working-directory: python
           target: ${{ matrix.platform.target }}
-          args: --release --locked --compatibility pypi --out dist
+          args: --release --locked --compatibility pypi --out dist --interpreter python3.12
       - name: Upload wheels
         uses: actions/upload-artifact@v5
         with:
