@@ -35,6 +35,7 @@ Read more about Okmain in the [blog post](https://dgroshev.com/blog/okmain/).
 
 * [Rust](https://github.com/si14/okmain/tree/main/crates/okmain)
 * [Python](https://github.com/si14/okmain/tree/main/python) (a wrapper over the Rust crate)
+* JavaScript/WebAssembly proof-of-concept in [`wasm-poc/`](wasm-poc)
 
 ## LLM disclosure
 
