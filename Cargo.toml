@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/okmain", "crates/okmain_py"]
+members = ["crates/okmain", "crates/okmain_py", "crates/okmain_wasm"]
 
 [workspace.package]
 edition = "2024"
