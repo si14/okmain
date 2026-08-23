@@ -13,11 +13,14 @@ pub struct CentroidSoA {
 
 #[inline(always)]
 pub(crate) fn squared_distance_flat(c_l: f32, c_a: f32, c_b: f32, l: f32, a: f32, b: f32) -> f32 {
-    let dl = c_l - l;
-    let da = c_a - a;
-    let db = c_b - b;
+    let dl = c_l.algebraic_sub(l);
+    let da = c_a.algebraic_sub(a);
+    let db = c_b.algebraic_sub(b);
 
-    dl.mul_add(dl, da.mul_add(da, db * db))
+    let dl_sq = dl.algebraic_mul(dl);
+    let da_sq = da.algebraic_mul(da);
+    let db_sq = db.algebraic_mul(db);
+    dl_sq.algebraic_add(da_sq).algebraic_add(db_sq)
 }
 
 #[inline]
@@ -70,9 +73,9 @@ pub fn update_centroids(
             let mask = ((assigned_c == k as u8) as u32) as f32;
 
             counts_f[k] += mask;
-            sums_l[k] = mask.mul_add(l, sums_l[k]);
-            sums_a[k] = mask.mul_add(a, sums_a[k]);
-            sums_b[k] = mask.mul_add(b, sums_b[k]);
+            sums_l[k] = sums_l[k].algebraic_add(l.algebraic_mul(mask));
+            sums_a[k] = sums_a[k].algebraic_add(a.algebraic_mul(mask));
+            sums_b[k] = sums_b[k].algebraic_add(b.algebraic_mul(mask));
         }
     }
 
@@ -89,19 +92,25 @@ pub fn update_centroids(
             continue;
         }
 
-        let new_l = sums_l[i] / counts_f[i];
-        let new_a = sums_a[i] / counts_f[i];
-        let new_b = sums_b[i] / counts_f[i];
+        let new_l = sums_l[i].algebraic_div(counts_f[i]);
+        let new_a = sums_a[i].algebraic_div(counts_f[i]);
+        let new_b = sums_b[i].algebraic_div(counts_f[i]);
 
-        let dl = centroids.l[i] - new_l;
-        let da = centroids.a[i] - new_a;
-        let db = centroids.b[i] - new_b;
+        let dl = centroids.l[i].algebraic_sub(new_l);
+        let da = centroids.a[i].algebraic_sub(new_a);
+        let db = centroids.b[i].algebraic_sub(new_b);
 
         centroids.l[i] = new_l;
         centroids.a[i] = new_a;
         centroids.b[i] = new_b;
 
-        shift_squared += dl.mul_add(dl, da.mul_add(da, db * db));
+        let dl_sq = dl.algebraic_mul(dl);
+        let da_sq = da.algebraic_mul(da);
+        let db_sq = db.algebraic_mul(db);
+        shift_squared = shift_squared
+            .algebraic_add(dl_sq)
+            .algebraic_add(da_sq)
+            .algebraic_add(db_sq);
     }
 
     UpdateResult {

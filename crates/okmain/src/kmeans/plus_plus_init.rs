@@ -10,10 +10,10 @@ const N_C: usize = GREEDY_INIT_N_CANDIDATES;
 #[inline(always)]
 fn sample_by_distance(rng: &mut impl RngExt, min_distances: &[f32], sum: f32) -> usize {
     let random_threshold = rng.random::<f32>() * sum;
-    let mut cumsum = 0.0;
+    let mut cumsum: f32 = 0.0;
 
     for (i, &distance) in min_distances.iter().enumerate() {
-        cumsum += distance;
+        cumsum = cumsum.algebraic_add(distance);
         if cumsum > random_threshold {
             return i;
         }
@@ -81,7 +81,7 @@ pub fn find_initial(
                 )
                 .min(current_min);
                 candidate_min_d_slices[j][i] = d;
-                potentials[j] += d;
+                potentials[j] = potentials[j].algebraic_add(d);
             }
         }
 

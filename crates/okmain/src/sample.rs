@@ -80,9 +80,9 @@ pub fn sample(width: u16, height: u16, buf: &[u8]) -> SampledOklabSoA {
                 let chunk_end = x_end * 3;
 
                 for pixel in row[chunk_start..chunk_end].chunks_exact(3) {
-                    acc_r[bx] += fast_srgb8::srgb8_to_f32(pixel[0]);
-                    acc_g[bx] += fast_srgb8::srgb8_to_f32(pixel[1]);
-                    acc_b[bx] += fast_srgb8::srgb8_to_f32(pixel[2]);
+                    acc_r[bx] = acc_r[bx].algebraic_add(fast_srgb8::srgb8_to_f32(pixel[0]));
+                    acc_g[bx] = acc_g[bx].algebraic_add(fast_srgb8::srgb8_to_f32(pixel[1]));
+                    acc_b[bx] = acc_b[bx].algebraic_add(fast_srgb8::srgb8_to_f32(pixel[2]));
                     acc_count[bx] += 1;
                 }
             }
@@ -91,9 +91,9 @@ pub fn sample(width: u16, height: u16, buf: &[u8]) -> SampledOklabSoA {
         // Emit one averaged Oklab sample per block column, then reset accumulators
         for bx in 0..blocks_x {
             let count = acc_count[bx] as f32;
-            let avg_r = acc_r[bx] / count;
-            let avg_g = acc_g[bx] / count;
-            let avg_b = acc_b[bx] / count;
+            let avg_r = acc_r[bx].algebraic_div(count);
+            let avg_g = acc_g[bx].algebraic_div(count);
+            let avg_b = acc_b[bx].algebraic_div(count);
 
             let oklab = oklab::linear_srgb_to_oklab(oklab::LinearRgb {
                 r: avg_r,

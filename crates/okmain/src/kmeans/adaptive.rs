@@ -4,9 +4,9 @@ use oklab::Oklab;
 use rand::RngExt;
 
 fn squared_distance(x: Oklab, y: Oklab) -> f32 {
-    let dl = x.l - y.l;
-    let da = x.a - y.a;
-    let db = x.b - y.b;
+    let dl = x.l.algebraic_sub(y.l);
+    let da = x.a.algebraic_sub(y.a);
+    let db = x.b.algebraic_sub(y.b);
     dl.mul_add(dl, da.mul_add(da, db * db))
 }
 

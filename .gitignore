@@ -10,3 +10,6 @@ dist/
 .mypy_cache/
 .ruff_cache/
 .claude/
+.DS_Store
+.idea
+tmp/
