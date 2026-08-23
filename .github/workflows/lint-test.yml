@@ -23,7 +23,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.93"
+          toolchain: "1.98"
           components: rustfmt, clippy
 
       # Cache downloaded crates only (registry tarballs + git deps),
@@ -47,7 +47,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.93"
+          toolchain: "1.98"
 
       # Cache downloaded crates only (registry tarballs + git deps),
       # not compiled artifacts — keeps the cache small and deterministic.
