@@ -33,3 +33,6 @@ fmt:
 
 debug_colors:
     cargo run --bin debug_colors --features="_debug" --release test_images/ 
+
+wasm-build:
+    wasm-pack build crates/okmain_wasm --target web --release --out-dir ../../wasm-poc/pkg
